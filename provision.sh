@@ -27,9 +27,11 @@ fi
 say "Starting provisioning on $(hostname) ..."
 
 # 1) Ensure Pi-Apps present (assumes you install it once; but we can bootstrap later if you want)
-if [[ ! -d "$HOME_EXPECTED/pi-apps" ]]; then
-  say "ERROR: ~/pi-apps not found. Install Pi-Apps first, then rerun."
-  exit 1
+if [[ ! -d "/pi-apps" ]]; then
+  say "Pi-Apps not found. Bootstrapping Pi-Apps..."
+  sudo apt-get update
+  sudo apt-get install -y git
+  git clone --depth=1 https://github.com/Botspot/pi-apps "/pi-apps"
 fi
 
 # 2) Update Pi-Apps (best effort)
