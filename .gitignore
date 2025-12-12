@@ -1,3 +1,7 @@
 
 # local backups
 *.bak.*
+
+# local backups
+provision.sh.bak.*
+*.bak.*
