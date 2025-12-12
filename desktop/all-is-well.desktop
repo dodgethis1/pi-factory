@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=All Is Well
+Comment=Pi health check
+Exec=all-is-well
+Icon=utilities-system-monitor
+Terminal=false
+Categories=Utility;
