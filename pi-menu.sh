@@ -47,6 +47,7 @@ while true; do
   echo "3) Re-run provisioning                                   [NVMe only]"
   echo "4) Exit"
   echo "5) Install Pi-Apps (menu-driven)                         [NVMe only]"
+  echo "6) Health Check (log to /var/log/jr-pi-toolkit)          [NVMe only]"
   echo "9) Help / Checklist (what to do, in what order)"
   echo
   read -rp "Select: " choice
@@ -90,6 +91,12 @@ while true; do
       [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
       [[ -x "$TOOLKIT_ROOT/jr-install-pi-apps.sh" ]] || { echo "ERROR: Missing jr-install-pi-apps.sh"; pause; continue; }
       sudo -u jr -H bash -lc "$TOOLKIT_ROOT/jr-install-pi-apps.sh"
+      pause
+      ;;
+    6)
+      [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
+      [[ -x "$TOOLKIT_ROOT/jr-health-check.sh" ]] || { echo "ERROR: Missing jr-health-check.sh"; pause; continue; }
+      sudo "$TOOLKIT_ROOT/jr-health-check.sh"
       pause
       ;;
     9)
