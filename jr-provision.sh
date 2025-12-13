@@ -12,6 +12,14 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# Idempotency: if already provisioned, exit clean
+MARKER=/var/lib/jr-toolkit/provision.done
+if [[ -f "" ]]; then
+  echo "Already provisioned:  exists. Exiting."
+  exit 0
+fi
+
+
 # Packages (baseline)
 BASE_PKGS=(
   git curl vim rsync htop tmux
@@ -43,15 +51,21 @@ fi
 echo "[6/6] try to install Raspberry Pi Connect"
 if apt-cache show rpi-connect >/dev/null 2>&1; then
   apt-get install -y rpi-connect
-  systemctl enable --now rpi-connect || true
+  systemctl enable --now rpi-connect 2>/dev/null || systemctl enable --now rpi-connectd 2>/dev/null || true
 else
   echo "NOTE: rpi-connect package not found in this OS repo. Skipping."
 fi
 
 echo "Install Pi-Apps (if missing)"
 if [[ ! -d /home/jr/pi-apps ]]; then
-  sudo -u jr bash -lc 'curl -fsSL https://pi-apps.io/install | bash' || \
-  sudo -u jr bash -lc 'wget -qO- https://pi-apps.io/install | bash'
+  sudo -u jr bash -lc 'set -euo pipefail
+  URL="https://raw.githubusercontent.com/Botspot/pi-apps/master/install"
+  TMP="/tmp/pi-apps-install.sh"
+  rm -f ""
+  curl -fsSL "" -o ""
+  head -n 1 "" | grep -q "^#!" || { echo "ERROR: Pi-Apps installer was not a shell script"; head -n 3 ""; exit 1; }
+  bash ""
+  '
 fi
 
 echo "Install Pi-Apps app: All is well (if Pi-Apps CLI exists)"
