@@ -3,6 +3,10 @@ set -euo pipefail
 
 FLASHER="/home/jr/pi-toolkit/flash-nvme.sh"
 SEEDER="/home/jr/pi-toolkit/seed/postflash_nvme_seed.sh"
+echo "[menu] Installing toolkit onto NVMe..."
+
+bash /home/jr/pi-toolkit/install-toolkit-to-nvme.sh
+
 
 if [[ ! -x "$FLASHER" ]]; then
   echo "ERROR: flasher not found or not executable: $FLASHER"

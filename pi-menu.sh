@@ -1,65 +1,113 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_SRC="$(findmnt -n -o SOURCE / || true)"
+
+TOOLKIT_SD="/home/jr/pi-toolkit"
+TOOLKIT_NVME="/opt/jr-pi-toolkit"
+
+if [[ "$ROOT_SRC" == /dev/mmcblk* ]] && [[ -d "$TOOLKIT_SD" ]]; then
+  TOOLKIT_ROOT="$TOOLKIT_SD"
+  BOOT_MODE="SD"
+else
+  TOOLKIT_ROOT="$TOOLKIT_NVME"
+  BOOT_MODE="NVME"
+fi
+
+pause() { read -rp "Press Enter to return to menu..." _; }
+
+confirm_phrase() {
+  local phrase="$1"
+  echo
+  echo "CONFIRM REQUIRED"
+  echo "Type exactly: $phrase"
+  read -rp "> " typed
+  [[ "${typed:-}" == "$phrase" ]]
+}
 
 while true; do
   clear
   echo "============================================================"
-  echo " JR PI TOOLKIT — GOLDEN SD (INSTALLER / RECOVERY MEDIA)"
+  echo " JR PI TOOLKIT — GOLDEN SD / NVMe TOOLKIT (HEADLESS SAFE)"
   echo "============================================================"
   echo
-  echo "REQUIRED WORKFLOW (HEADLESS):"
-  echo
-  echo "  1) Boot from this SD card (installer only)"
-  echo "  2) Run Option 1 → First-run setup (SD environment prep)"
-  echo "  3) Run Option 2 → Flash NVMe + seed identity (DESTRUCTIVE)"
-  echo "  4) Power OFF and REMOVE the SD card"
-  echo "  5) Boot from NVMe exactly once"
-  echo "     - cloud-init runs"
-  echo "     - user 'jr' is created"
-  echo "     - SSH + key access come up"
-  echo "     - provisioning runs automatically (one-shot)"
-  echo "  6) Verify SSH access to the NVMe system"
-  echo "     - normal operation begins here"
-  echo
-  echo "RULES:"
-  echo " - Option 2 wipes the NVMe completely"
-  echo " - Options 1 and 2 may be run in the same SD boot session"
-  echo " - Provisioning runs automatically on first NVMe boot"
-  echo " - The SD card is NOT required after installation"
-  echo " - Normal operation never depends on this SD"
-  echo
-  echo "============================================================"
+  echo "Detected root: $ROOT_SRC"
+  echo "Toolkit root:  $TOOLKIT_ROOT"
+  if [[ -x /home/jr/pi-apps/pi-apps || -x /home/jr/pi-apps/updater ]]; then
+    echo "Pi-Apps:      installed (/home/jr/pi-apps)"
+  else
+    echo "Pi-Apps:      not installed"
+  fi
   echo
   echo "Menu"
   echo "----"
-  echo "0) Set NVMe first-boot network (Ethernet/Wi-Fi)"
-  echo "1) First-run setup (Golden SD prep, networking, tools)"
-  echo "2) Flash NVMe + seed identity (DESTRUCTIVE)"
-  echo "3) Re-run provisioning (NVMe only — normally automatic on first NVMe boot)"
+  echo "0) Set NVMe first-boot network (Ethernet/Wi-Fi)          [SD only]"
+  echo "1) First-run setup (Golden SD prep, networking, tools)   [SD only]"
+  echo "2) Flash NVMe + seed identity (DESTRUCTIVE)              [SD only]"
+  echo "3) Re-run provisioning                                   [NVMe only]"
   echo "4) Exit"
+  echo "5) Install Pi-Apps (menu-driven)                         [NVMe only]"
+  echo "9) Help / Checklist (what to do, in what order)"
   echo
   read -rp "Select: " choice
 
-  case "$choice" in
+  case "${choice:-}" in
     0)
-      sudo /home/jr/pi-toolkit/jr-set-nvme-network.sh
-      read -rp "Press Enter to return to menu..."
+      [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+      sudo "$TOOLKIT_ROOT/jr-set-nvme-network.sh"
+      pause
       ;;
     1)
-      sudo /home/jr/pi-toolkit/jr-firstrun.sh
-      read -rp "Press Enter to return to menu..."
+      [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+      sudo "$TOOLKIT_ROOT/jr-firstrun.sh"
+      pause
       ;;
     2)
-      sudo /home/jr/pi-toolkit/flash-nvme-and-seed.sh
-      read -rp "Press Enter to return to menu..."
+      [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+      if ! confirm_phrase "FLASH_NVME_ERASE_ALL"; then
+        echo "Canceled."
+        pause
+        continue
+      fi
+      sudo "$TOOLKIT_ROOT/flash-nvme-and-seed.sh"
+      pause
       ;;
     3)
-      sudo /home/jr/pi-toolkit/jr-provision.sh
-      read -rp "Press Enter to return to menu..."
+      [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
+      if ! confirm_phrase "RUN_PROVISION_ON_NVME"; then
+        echo "Canceled."
+        pause
+        continue
+      fi
+      sudo "$TOOLKIT_ROOT/jr-provision.sh"
+      pause
       ;;
     4)
       echo "Exiting JR Pi Toolkit."
       exit 0
+      ;;
+    5)
+      [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
+      [[ -x "$TOOLKIT_ROOT/jr-install-pi-apps.sh" ]] || { echo "ERROR: Missing jr-install-pi-apps.sh"; pause; continue; }
+      sudo -u jr -H bash -lc "$TOOLKIT_ROOT/jr-install-pi-apps.sh"
+      pause
+      ;;
+    9)
+      echo
+      echo "CHECKLIST (Golden SD -> NVMe, headless)"
+      echo "1) Boot from Golden SD (installer only)."
+      echo "2) Run Option 1 (first-run SD prep)."
+      echo "3) Run Option 2 (flash NVMe + seed identity)."
+      echo "4) Power off, remove SD."
+      echo "5) Boot from NVMe once. SSH should come up as jr with keys."
+      echo "6) From NVMe, run provisioning only when YOU choose (Option 3)."
+      echo "7) Pi-Apps and workload installs are menu items, not automatic."
+      echo
+      echo "RULES"
+      echo "- Ethernet is baseline. Wi-Fi stays unconfigured unless you do it manually later."
+      echo "- SD is installer/recovery media. NVMe is normal operation."
+      echo
+      pause
       ;;
     *)
       echo "Invalid selection."
