@@ -1,7 +1,4 @@
-
 # local backups
 *.bak.*
-
-# local backups
 provision.sh.bak.*
-*.bak.*
+# Toolkit backup artifacts
