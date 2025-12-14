@@ -18,10 +18,52 @@ header() {
   echo
 }
 
+show_usb_status() {
+  echo "----- Mount status -----"
+  if mountpoint -q "${USB_MOUNT}"; then
+    mount | grep " on ${USB_MOUNT} " || true
+    df -h "${USB_MOUNT}" || true
+  else
+    echo "NOT mounted: ${USB_MOUNT}"
+  fi
+  echo
+  echo "----- Devices (lsblk) -----"
+  lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINTS,MODEL
+  echo
+}
+
+mount_backup_usb() {
+  mkdir -p "${USB_MOUNT}"
+
+  if mountpoint -q "${USB_MOUNT}"; then
+    echo "OK: already mounted at ${USB_MOUNT}"
+    return 0
+  fi
+
+  echo "Attempting: sudo mount ${USB_MOUNT} (uses /etc/fstab if present)"
+  if sudo mount "${USB_MOUNT}"; then
+    echo "OK: mounted ${USB_MOUNT}"
+    return 0
+  fi
+
+  echo
+  echo "ERROR: Could not mount ${USB_MOUNT}."
+  echo "Common causes:"
+  echo " - No /etc/fstab entry for the backup drive"
+  echo " - Wrong UUID in /etc/fstab"
+  echo " - Drive not plugged in / not detected"
+  echo
+  show_usb_status
+  return 1
+}
+
 ensure_usb() {
+  mkdir -p "${USB_MOUNT}"
+
   if ! mountpoint -q "${USB_MOUNT}"; then
-    echo "ERROR: ${USB_MOUNT} is not mounted."
-    echo "Fix: plug in the backup USB and run:  sudo mount -a"
+    echo "Backup USB is not mounted at ${USB_MOUNT}."
+    echo
+    echo "Use: 5) Mount/Check backup USB"
     echo
     return 1
   fi
@@ -32,19 +74,21 @@ ensure_usb() {
 
 while true; do
   header
+  echo "0) Back"
   echo "1) Show disk + USB status (lsblk/df)"
   echo "2) Create/verify USB folder structure"
   echo "3) Image Golden SD -> USB (jr-image-golden-sd-to-usb.sh)"
   echo "4) Sanitize for imaging (jr-sanitize-for-imaging.sh)"
-  echo "0) Back"
+  echo "5) Mount/Check backup USB (${USB_MOUNT})"
   echo
 
   read -r -p "Choose: " choice
   case "${choice}" in
+    0)
+      break
+      ;;
     1)
-      lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL
-      echo
-      timeout 2s df -h "" 2>/dev/null || echo "(df timed out or not mounted)"
+      show_usb_status
       pause
       ;;
     2)
@@ -65,12 +109,12 @@ while true; do
       bash "${SCRIPT_DIR}/jr-sanitize-for-imaging.sh"
       pause
       ;;
-      0)
-        break
-        ;;
-
+    5)
+      mount_backup_usb
+      pause
+      ;;
     *)
-      echo "Pick 0-4."
+      echo "Pick 0-5."
       pause
       ;;
   esac
