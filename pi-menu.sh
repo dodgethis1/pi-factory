@@ -63,6 +63,7 @@ while true; do
   menu_line 11 "Power (reboot/poweroff/ssh)"                                  "[ALL]"
   menu_line 12 "Update toolkit from GitHub (fast-forward only)"               "[ALL]"
   menu_line 13 "Seed SSH keys for jr from toolkit (public keys)"              "[ALL]"
+    menu_line 14 "Guided NVMe build from Golden SD (end-to-end)"           "[SD only]"
   echo
 
   read -rp "Select: " choice
