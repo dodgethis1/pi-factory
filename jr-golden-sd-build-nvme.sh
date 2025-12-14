@@ -121,6 +121,32 @@ main() {
   local nvme
   nvme="$(pick_nvme_disk)"
 
+# JR_SAFE_TARGET_SUMMARY_BEGIN
+echo
+echo "=================================================================="
+echo "TARGET CHECK (about to ERASE a disk)"
+echo "=================================================================="
+echo "Selected target: "
+echo "Current root  : "
+echo
+echo "Target disk details:"
+lsblk -dno NAME,SIZE,MODEL,SERIAL "" 2>/dev/null || true
+echo
+echo "Target partitions + mountpoints (should be empty):"
+lsblk -no NAME,SIZE,FSTYPE,MOUNTPOINTS "" 2>/dev/null || true
+echo
+# Hard safety stops
+if [[ "" != /dev/nvme* ]]; then
+  echo "SAFETY STOP: Target is not an NVMe device: "
+  exit 1
+fi
+if [[ "" == "" || "" == p* ]]; then
+  echo "SAFETY STOP: Target appears to be the CURRENT ROOT DISK ()."
+  exit 1
+fi
+# JR_SAFE_TARGET_SUMMARY_END
+
+
   echo
   echo "Target NVMe disk:"
   lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINTS,MODEL,SERIAL "${nvme}" || true
