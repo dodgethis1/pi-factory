@@ -163,6 +163,13 @@ while true; do
       sudo "$TOOLKIT_ROOT/jr-seed-ssh-keys.sh" || true
       pause
       ;;
+  14)
+    [[ "" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+    [[ -x "/jr-golden-sd-build-nvme.sh" ]] || { echo "ERROR: Missing jr-golden-sd-build-nvme.sh"; pause; continue; }
+    sudo "/jr-golden-sd-build-nvme.sh"
+    pause
+    ;;
+
     *)
       echo "Invalid selection."
       sleep 1
