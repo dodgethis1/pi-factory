@@ -10,3 +10,10 @@ Rules:
 - Destructive actions require typed confirmation.
 - Use TOOLKIT_ROOT paths (no /jr-*.sh hardcoding).
 - Re-runs should be safe (idempotent).
+
+## Docs
+- docs/STRATEGY.md
+- docs/USAGE.md
+- docs/CONTEXT.md
+- docs/ROADMAP.md
+- docs/CHANGELOG.md
