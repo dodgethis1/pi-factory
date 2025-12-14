@@ -42,56 +42,60 @@ clear || true  echo "===========================================================
 
   echo "Menu"
   echo "----"
-  echo "0) Set NVMe first-boot network (Ethernet/Wi-Fi)          [SD only]"
-  echo "1) First-run setup (Golden SD prep, networking, tools)   [SD only]"
-  echo "2) Flash NVMe + seed identity (DESTRUCTIVE)              [SD only]"
-  echo "3) Re-run provisioning                                   [NVMe only]"
-  echo "4) Exit"
-  echo "5) Install Pi-Apps (menu-driven)                         [NVMe only]"
-  echo "6) Health Check (log to /var/log/jr-pi-toolkit)          [NVMe only]"
-  echo "7) Backup / Imaging (SD image, sanitize)                 [NVMe only]"
-  echo "8) Status Dashboard (jr-status.sh)"
-  echo "9) Help / Checklist (what to do, in what order)"
-echo "10) Re-seed identity from Golden SD (requires SD inserted)     [NVMe only]"
+    echo "0) Exit"
+    echo "1) Set NVMe first-boot network (Ethernet/Wi-Fi)          [SD only]"
+    echo "2) First-run setup (Golden SD prep, networking, tools)   [SD only]"
+    echo "3) Flash NVMe + seed identity (DESTRUCTIVE)              [SD only]"
+    echo "4) Re-run provisioning                                   [NVMe only]"
+    echo "5) Install Pi-Apps (menu-driven)                         [NVMe only]"
+    echo "6) Health Check (log to /var/log/jr-pi-toolkit)          [NVMe only]"
+    echo "7) Backup / Imaging (SD image, sanitize)                 [NVMe only]"
+    echo "8) Status Dashboard (jr-status.sh)"
+    echo "9) Help / Checklist (what to do, in what order)"
+    echo "10) Re-seed identity from Golden SD (requires SD inserted)     [NVMe only]"
+    echo "11) Power (reboot/poweroff/ssh)                          [ALL]"
+
   echo
   read -rp "Select: " choice
+  # JR_QOL_0_EXIT
+  if [[ "${choice:-}" == "0" ]]; then
+    echo "Exiting JR Pi Toolkit."
+    exit 0
+  fi
+
 
   case "${choice:-}" in
-    0)
-      [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
-      sudo "$TOOLKIT_ROOT/jr-set-nvme-network.sh"
-      pause
-      ;;
-    1)
-      [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
-      sudo "$TOOLKIT_ROOT/jr-firstrun.sh"
-      pause
-      ;;
-    2)
-      [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
-      if ! confirm_phrase "FLASH_NVME_ERASE_ALL"; then
-        echo "Canceled."
+      1)
+        [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+        sudo "$TOOLKIT_ROOT/jr-set-nvme-network.sh"
         pause
-        continue
-      fi
-      sudo "$TOOLKIT_ROOT/flash-nvme-and-seed.sh"
-      pause
-      ;;
-    3)
-      [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
-      if ! confirm_phrase "RUN_PROVISION_ON_NVME"; then
-        echo "Canceled."
+        ;;
+      2)
+        [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+        sudo "$TOOLKIT_ROOT/jr-firstrun.sh"
         pause
-        continue
-      fi
-      sudo "$TOOLKIT_ROOT/jr-provision.sh"
-      pause
-      ;;
-    4)
-      echo "Exiting JR Pi Toolkit."
-      exit 0
-      ;;
-    5)
+        ;;
+      3)
+        [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+        if ! confirm_phrase "FLASH_NVME_ERASE_ALL"; then
+          echo "Canceled."
+          pause
+          continue
+        fi
+        sudo "$TOOLKIT_ROOT/flash-nvme-and-seed.sh"
+        pause
+        ;;
+      4)
+        [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
+        if ! confirm_phrase "RUN_PROVISION_ON_NVME"; then
+          echo "Canceled."
+          pause
+          continue
+        fi
+        sudo "$TOOLKIT_ROOT/jr-provision.sh"
+        pause
+        ;;
+5)
       [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
       [[ -x "$TOOLKIT_ROOT/jr-install-pi-apps.sh" ]] || { echo "ERROR: Missing jr-install-pi-apps.sh"; pause; continue; }
       sudo -u jr -H bash -lc "$TOOLKIT_ROOT/jr-install-pi-apps.sh"
@@ -118,6 +122,10 @@ echo "10) Re-seed identity from Golden SD (requires SD inserted)     [NVMe only]
   read -rp "Press Enter to return to menu: " _
   ;;
 
+
+"11")
+  /opt/jr-pi-toolkit/jr-power-menu.sh || true
+  ;;
 
     9)
       echo
