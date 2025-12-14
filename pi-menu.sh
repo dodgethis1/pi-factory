@@ -52,13 +52,8 @@ run_logged() {
   } >> "$log" 2>&1
 
   rc=0
-  if command -v script >/dev/null 2>&1; then
-    # Keep interactive behavior, but don’t create quote-bugs
-    cmd="$*"
-    script -q -e -a -c "$cmd" "$log" || rc=$?
-  else
-    { "$@"; } >> "$log" 2>&1 || rc=$?
-  fi
+{ "$@"; } >> "$log" 2>&1 || rc=$?
+
 
   {
     echo
