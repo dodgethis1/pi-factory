@@ -28,7 +28,7 @@ confirm_phrase() {
 
 while true; do
   clear || true
-  echo "============================================================"
+echo "============================================================"
   echo " JR PI TOOLKIT - GOLDEN SD / NVMe TOOLKIT (HEADLESS SAFE)"
   echo "============================================================"
   echo
