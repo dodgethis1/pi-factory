@@ -64,6 +64,7 @@ while true; do
   menu_line 12 "Update toolkit from GitHub (fast-forward only)"               "[ALL]"
   menu_line 13 "Seed SSH keys for jr from toolkit (public keys)"              "[ALL]"
     menu_line 14 "Guided NVMe build from Golden SD (end-to-end)"           "[SD only]"
+    menu_line 15 "Cases: Pironman / Argon installers (opt-in)"                  "[ALL]"
   echo
 
   read -rp "Select: " choice
@@ -166,10 +167,17 @@ while true; do
       ;;
   14)
     [[ "" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
-    [[ -x "/jr-golden-sd-build-nvme.sh" ]] || { echo "ERROR: Missing jr-golden-sd-build-nvme.sh"; pause; continue; }
-    sudo "/jr-golden-sd-build-nvme.sh"
+    [[ -x "$TOOLKIT_ROOT/jr-golden-sd-build-nvme.sh" ]] || { echo "ERROR: Missing jr-golden-sd-build-nvme.sh"; pause; continue; }
+    sudo "$TOOLKIT_ROOT/jr-golden-sd-build-nvme.sh"
     pause
     ;;
+
+  15)
+    [[ -x "$TOOLKIT_ROOT/jr-cases-menu.sh" ]] || { echo "ERROR: Missing jr-cases-menu.sh"; pause; continue; }
+    bash "$TOOLKIT_ROOT/jr-cases-menu.sh"
+    pause
+    ;;
+
 
     *)
       echo "Invalid selection."
