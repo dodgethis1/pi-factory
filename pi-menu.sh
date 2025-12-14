@@ -2,17 +2,14 @@
 set -euo pipefail
 
 ROOT_SRC="$(findmnt -n -o SOURCE / || true)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOLKIT_ROOT="$SCRIPT_DIR"
 
-TOOLKIT_SD="/home/jr/pi-toolkit"
-TOOLKIT_NVME="/opt/jr-pi-toolkit"
-
-# BOOT MODE MUST BE BASED ON ROOT DEVICE ONLY (leftover dirs shouldn't matter)
+# BOOT MODE: informational + safety gates (root device only)
 if [[ "$ROOT_SRC" == /dev/mmcblk* ]]; then
   BOOT_MODE="SD"
-  TOOLKIT_ROOT="$TOOLKIT_SD"
 else
   BOOT_MODE="NVME"
-  TOOLKIT_ROOT="$TOOLKIT_NVME"
 fi
 
 pause() { read -rp "Press Enter to return to menu..." _; }
@@ -25,6 +22,41 @@ confirm_phrase() {
   read -rp "> " typed
   [[ "${typed:-}" == "$phrase" ]]
 }
+
+run_logged() {
+  local name="$1"; shift
+  local LOG_DIR="/var/log/jr-pi-toolkit"
+  local ts; ts="$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$LOG_DIR"
+  chmod 0755 "$LOG_DIR" || true
+  local log="$LOG_DIR/menu-${ts}-${name}.log"
+  ln -sf "$log" "$LOG_DIR/last-run.log"
+
+  {
+    echo "=== BEGIN ${name} @ $(date -Is) ==="
+    echo "root:        ${ROOT_SRC}"
+    echo "toolkit:     ${TOOLKIT_ROOT}"
+    echo "mode:        ${BOOT_MODE}"
+    echo "command:     $(printf %q "${@}")"
+    echo
+  } >> "$log"
+
+  local rc=0
+  if command -v script >/dev/null 2>&1; then
+    local cmd; cmd="$(printf %q\  \"$@\")"
+    script -q -e -a -c "$cmd" "$log" || rc=$?
+  else
+    { "$@"; rc=$?; } >> "$log" 2>&1 || true
+  fi
+
+  {
+    echo
+    echo "=== END rc=${rc} @ $(date -Is) ==="
+  } >> "$log"
+
+  return "$rc"
+}
+
 menu_line() {
   local n="$1"
   local text="$2"
@@ -111,7 +143,8 @@ while true; do
   menu_line 13 "Seed SSH keys for jr from toolkit (public keys)"              "[ALL]"
     menu_line 14 "Guided NVMe build from Golden SD (end-to-end)"           "[SD only]"
     menu_line 15 "Cases: Pironman / Argon installers (opt-in)"
-    menu_line 16 "Doctor / Preflight (sanity checks)"                               "[ALL]"                  "[ALL]"
+    menu_line 16 "Doctor / Preflight (sanity checks)"                               "[ALL]"
+  menu_line L  "View last run log (/var/log/jr-pi-toolkit/last-run.log)"      "[ALL]"
   echo
 
   read -rp "Select: " choice
@@ -124,12 +157,12 @@ while true; do
   case "${choice:-}" in
     1)
       [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
-      sudo "$TOOLKIT_ROOT/jr-set-nvme-network.sh"
+      run_logged "01-set-nvme-network" sudo "/jr-set-nvme-network.sh"
       pause
       ;;
     2)
       [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
-      sudo "$TOOLKIT_ROOT/jr-firstrun.sh"
+      run_logged "02-firstrun" sudo "/jr-firstrun.sh"
       pause
       ;;
     3)
@@ -139,7 +172,7 @@ while true; do
         pause
         continue
       fi
-      sudo "$TOOLKIT_ROOT/flash-nvme-and-seed.sh"
+      run_logged "03-flash-nvme-and-seed" sudo "/flash-nvme-and-seed.sh"
       pause
       ;;
     4)
@@ -149,30 +182,30 @@ while true; do
         pause
         continue
       fi
-      sudo "$TOOLKIT_ROOT/jr-provision.sh"
+      run_logged "04-provision" sudo "/jr-provision.sh"
       pause
       ;;
     5)
       [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
       [[ -x "$TOOLKIT_ROOT/jr-install-pi-apps.sh" ]] || { echo "ERROR: Missing jr-install-pi-apps.sh"; pause; continue; }
-      sudo -u jr -H bash -lc "$TOOLKIT_ROOT/jr-install-pi-apps.sh"
+      run_logged "05-install-pi-apps" sudo -u jr -H bash -lc "/jr-install-pi-apps.sh"
       pause
       ;;
     6)
       [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
       [[ -x "$TOOLKIT_ROOT/jr-health-check.sh" ]] || { echo "ERROR: Missing jr-health-check.sh"; pause; continue; }
-      sudo "$TOOLKIT_ROOT/jr-health-check.sh"
+      run_logged "06-health-check" sudo "/jr-health-check.sh"
       pause
       ;;
     7)
       [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
       [[ -x "$TOOLKIT_ROOT/jr-backup-menu.sh" ]] || { echo "ERROR: Missing jr-backup-menu.sh"; pause; continue; }
-      sudo "$TOOLKIT_ROOT/jr-backup-menu.sh"
+      run_logged "07-backup-menu" sudo "/jr-backup-menu.sh"
       pause
       ;;
     8)
       [[ -x "$TOOLKIT_ROOT/jr-status.sh" ]] || { echo "ERROR: Missing jr-status.sh"; pause; continue; }
-      "$TOOLKIT_ROOT/jr-status.sh" || true
+      run_logged "08-status" "/jr-status.sh" || true
       pause
       ;;
     9)
@@ -196,36 +229,48 @@ while true; do
     10)
       [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
       [[ -x "$TOOLKIT_ROOT/jr-reseed-from-golden-sd.sh" ]] || { echo "ERROR: Missing jr-reseed-from-golden-sd.sh"; pause; continue; }
-      "$TOOLKIT_ROOT/jr-reseed-from-golden-sd.sh" || true
+      run_logged "10-reseed" "/jr-reseed-from-golden-sd.sh" || true
       pause
       ;;
     11)
       [[ -x "$TOOLKIT_ROOT/jr-power-menu.sh" ]] || { echo "ERROR: Missing jr-power-menu.sh"; pause; continue; }
-      "$TOOLKIT_ROOT/jr-power-menu.sh" || true
+      run_logged "11-power" "/jr-power-menu.sh" || true
       ;;
     12)
       [[ -x "$TOOLKIT_ROOT/jr-self-update.sh" ]] || { echo "ERROR: Missing jr-self-update.sh"; pause; continue; }
-      "$TOOLKIT_ROOT/jr-self-update.sh" || true
+      run_logged "12-self-update" "/jr-self-update.sh" || true
       ;;
     13)
       [[ -x "$TOOLKIT_ROOT/jr-seed-ssh-keys.sh" ]] || { echo "ERROR: Missing jr-seed-ssh-keys.sh"; pause; continue; }
-      sudo "$TOOLKIT_ROOT/jr-seed-ssh-keys.sh" || true
+      run_logged "13-seed-ssh-keys" sudo "/jr-seed-ssh-keys.sh" || true
       pause
       ;;
   14)
-    [[ "" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
+    [[ "$BOOT_MODE" == "SD" ]] || { echo "ERROR: SD only."; pause; continue; }
     [[ -x "$TOOLKIT_ROOT/jr-golden-sd-build-nvme.sh" ]] || { echo "ERROR: Missing jr-golden-sd-build-nvme.sh"; pause; continue; }
-    sudo "$TOOLKIT_ROOT/jr-golden-sd-build-nvme.sh"
+    run_logged "14-guided-nvme-build" sudo "/jr-golden-sd-build-nvme.sh"
     pause
     ;;
 
   15)
     [[ -x "$TOOLKIT_ROOT/jr-cases-menu.sh" ]] || { echo "ERROR: Missing jr-cases-menu.sh"; pause; continue; }
-    bash "$TOOLKIT_ROOT/jr-cases-menu.sh"
+    run_logged "15-cases-menu" bash "/jr-cases-menu.sh"
     pause
     ;;
 
 
+      16)
+        [[ -x "$TOOLKIT_ROOT/jr-doctor-menu.sh" ]] || { echo "ERROR: Missing jr-doctor-menu.sh"; pause; continue; }
+        run_logged "16-doctor-menu" bash "/jr-doctor-menu.sh"
+        ;;
+      L|l)
+        if [[ -f /var/log/jr-pi-toolkit/last-run.log ]]; then
+          command -v less >/dev/null 2>&1 && sudo less -R /var/log/jr-pi-toolkit/last-run.log || sudo cat /var/log/jr-pi-toolkit/last-run.log
+        else
+          echo "No last-run.log yet. Run Doctor (16) or any logged action first."
+        fi
+        pause
+        ;;
     *)
       echo "Invalid selection."
       sleep 1
