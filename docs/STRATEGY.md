@@ -20,7 +20,7 @@ The menu must make it hard to do the wrong thing in the wrong mode.
 
 ## Non-negotiables
 1) **TOOLKIT_ROOT everywhere**
-   - Menu sets TOOLKIT_ROOT based on root device (SD vs NVMe).
+   - Menu derives TOOLKIT_ROOT from the real script path (`readlink -f ${BASH_SOURCE[0]}`) once and never overwrites it.
    - All scripts reference sibling scripts via `$TOOLKIT_ROOT/...`
    - Avoid hardcoded `/jr-...` or mixed paths.
 
@@ -39,6 +39,7 @@ The menu must make it hard to do the wrong thing in the wrong mode.
      - creates a timestamped log file
      - writes a BEGIN/END header with mode/root/toolkit/command
      - updates `last-run.log` symlink
+   - Do not use `script -c` for logging menu actions (TTY/quoting issues). Append output directly.
    - Keep logs in one stable place:
      - primary: `/var/log/jr-pi-toolkit/`
      - fallback (if needed): `/var/local/state/jr-pi-toolkit/logs/`
