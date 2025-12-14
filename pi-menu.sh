@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Robust toolkit root detection (works when launched via /usr/local/bin/jr-toolkit)
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+TOOLKIT_ROOT="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
 ROOT_SRC="$(findmnt -n -o SOURCE / || true)"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLKIT_ROOT="$SCRIPT_DIR"
 
 # BOOT MODE: informational + safety gates (root device only)
 if [[ "$ROOT_SRC" == /dev/mmcblk* ]]; then
