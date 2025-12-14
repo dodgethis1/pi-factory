@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USB_MOUNT="/mnt/jr-backup"
 USB_ROOT="${USB_MOUNT}/jr-backups"
 
-pause() { read -r -p "Press Enter to continue..." _; }
+pause() { echo; echo "Press Enter to continue..."; read -r _; }
 
 header() {
   clear
@@ -44,7 +44,7 @@ while true; do
     1)
       lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL
       echo
-      df -h "${USB_MOUNT}" 2>/dev/null || true
+      timeout 2s df -h "" 2>/dev/null || echo "(df timed out or not mounted)"
       pause
       ;;
     2)
