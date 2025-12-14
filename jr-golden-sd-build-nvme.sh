@@ -147,6 +147,7 @@ fi
 # JR_SAFE_TARGET_SUMMARY_END
 
 
+
   echo
   echo "Target NVMe disk:"
   lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINTS,MODEL,SERIAL "${nvme}" || true
