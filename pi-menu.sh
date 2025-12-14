@@ -50,6 +50,7 @@ clear || true  echo "===========================================================
   echo "5) Install Pi-Apps (menu-driven)                         [NVMe only]"
   echo "6) Health Check (log to /var/log/jr-pi-toolkit)          [NVMe only]"
   echo "7) Backup / Imaging (SD image, sanitize)                 [NVMe only]"
+  echo "8) Status Dashboard (jr-status.sh)"
   echo "9) Help / Checklist (what to do, in what order)"
   echo
   read -rp "Select: " choice
@@ -107,6 +108,11 @@ clear || true  echo "===========================================================
       sudo "$TOOLKIT_ROOT/jr-backup-menu.sh"
       pause
       ;;
+    "8")
+      /opt/jr-pi-toolkit/jr-status.sh || true
+      read -rp "Press Enter to return to menu: " _
+      ;;
+
     9)
       echo
       echo "CHECKLIST (Golden SD -> NVMe, headless)"
