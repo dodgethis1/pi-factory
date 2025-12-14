@@ -52,6 +52,7 @@ clear || true  echo "===========================================================
   echo "7) Backup / Imaging (SD image, sanitize)                 [NVMe only]"
   echo "8) Status Dashboard (jr-status.sh)"
   echo "9) Help / Checklist (what to do, in what order)"
+echo "10) Re-seed identity from Golden SD (requires SD inserted)     [NVMe only]"
   echo
   read -rp "Select: " choice
 
@@ -112,6 +113,11 @@ clear || true  echo "===========================================================
       /opt/jr-pi-toolkit/jr-status.sh || true
       read -rp "Press Enter to return to menu: " _
       ;;
+"10")
+  /opt/jr-pi-toolkit/jr-reseed-from-golden-sd.sh || true
+  read -rp "Press Enter to return to menu: " _
+  ;;
+
 
     9)
       echo

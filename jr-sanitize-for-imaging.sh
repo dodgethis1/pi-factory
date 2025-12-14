@@ -1,25 +1,34 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
-echo "=== SANITIZE FOR IMAGING (safe to clone afterward) ==="
-echo "This removes machine identity + SSH host keys so clones don't conflict."
+source /opt/jr-pi-toolkit/jr-confirm.sh
+
+echo
+echo "============================================================"
+echo " JR PI TOOLKIT — SANITIZE RUNNING OS FOR IMAGING"
+echo "============================================================"
+echo
+echo "This runs AGAINST THE LIVE SYSTEM you are booted into."
+echo "It can cause SSH host key changes, machine-id changes,"
+echo "and other identity resets that will annoy future-you."
+echo
+echo "If you really want to do this, type: SANITIZE LIVE"
 echo
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "ERROR: run as root (use sudo)."
-  exit 1
-fi
+confirm_exact "SANITIZE LIVE" "Confirm" || die "Cancelled."
 
-echo "Removing SSH host keys..."
-rm -f /etc/ssh/ssh_host_* || true
+echo
+echo "OK. Proceeding with sanitize steps..."
+echo
 
-echo "Removing machine-id..."
-rm -f /etc/machine-id /var/lib/dbus/machine-id || true
-systemd-machine-id-setup >/dev/null 2>&1 || true
+# --- Put your existing sanitize actions below this line ---
+# NOTE: Keep these minimal and deterministic. Example placeholders:
+# sudo rm -f /etc/ssh/ssh_host_* || true
+# sudo truncate -s 0 /etc/machine-id || true
+# sudo rm -f /var/lib/dbus/machine-id || true
+# sudo apt clean || true
+# sudo journalctl --rotate || true
+# sudo journalctl --vacuum-time=1s || true
 
-echo "Clearing cloud-init instance state (if present)..."
-rm -rf /var/lib/cloud/instances/* 2>/dev/null || true
-rm -f /var/lib/cloud/instance/obj.pkl 2>/dev/null || true
-
+echo
 echo "Done."
-echo "Recommendation: reboot before imaging to ensure regenerated identity is clean."
