@@ -1,7 +1,12 @@
-# pi-provision
-Provisioning scripts for Raspberry Pi (Pi-Apps, All Is Well, desktop icons, SSH, RPi Connect).
-nvme-clean-base:
-- Boots from NVMe
-- SSH key auth works
-- Pi-Apps installed (/home/jr/pi-apps) + /pi-apps symlink
-- pi-provision one-shot complete (/var/local/pi-provision.done)
+# JR Pi Toolkit
+
+Golden SD (installer) + NVMe (runtime) provisioning toolkit.
+
+Run:
+  cd /opt/jr-pi-toolkit
+  bash ./pi-menu.sh
+
+Rules:
+- Destructive actions require typed confirmation.
+- Use TOOLKIT_ROOT paths (no /jr-*.sh hardcoding).
+- Re-runs should be safe (idempotent).
