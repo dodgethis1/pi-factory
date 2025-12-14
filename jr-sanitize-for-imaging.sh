@@ -1,21 +1,27 @@
 #!/bin/bash
 set -euo pipefail
 
-source /opt/jr-pi-toolkit/jr-confirm.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/jr-confirm.sh"
+
+ROOT_SRC="$(findmnt -n -o SOURCE / || true)"
+PHRASE="SANITIZE"
 
 echo
-echo "============================================================"
-echo " JR PI TOOLKIT — SANITIZE RUNNING OS FOR IMAGING"
-echo "============================================================"
+echo "==============================================================="
+echo "  JR PI TOOLKIT - SANITIZE RUNNING OS FOR IMAGING"
+echo "==============================================================="
 echo
 echo "This runs AGAINST THE LIVE SYSTEM you are booted into."
 echo "It can cause SSH host key changes, machine-id changes,"
 echo "and other identity resets that will annoy future-you."
 echo
-echo "If you really want to do this, type: SANITIZE LIVE"
+echo "Detected root : ${ROOT_SRC}"
+echo
+echo "If you really want to do this, type exactly: ${PHRASE}"
 echo
 
-confirm_exact "SANITIZE LIVE" "Confirm" || die "Cancelled."
+confirm_exact "${PHRASE}" "Confirm" || die "Cancelled."
 
 echo
 echo "OK. Proceeding with sanitize steps..."
