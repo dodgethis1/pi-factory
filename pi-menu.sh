@@ -6,12 +6,13 @@ ROOT_SRC="$(findmnt -n -o SOURCE / || true)"
 TOOLKIT_SD="/home/jr/pi-toolkit"
 TOOLKIT_NVME="/opt/jr-pi-toolkit"
 
-if [[ "$ROOT_SRC" == /dev/mmcblk* ]] && [[ -d "$TOOLKIT_SD" ]]; then
-  TOOLKIT_ROOT="$TOOLKIT_SD"
+# BOOT MODE MUST BE BASED ON ROOT DEVICE ONLY (leftover dirs shouldn't matter)
+if [[ "$ROOT_SRC" == /dev/mmcblk* ]]; then
   BOOT_MODE="SD"
+  TOOLKIT_ROOT="$TOOLKIT_SD"
 else
-  TOOLKIT_ROOT="$TOOLKIT_NVME"
   BOOT_MODE="NVME"
+  TOOLKIT_ROOT="$TOOLKIT_NVME"
 fi
 
 pause() { read -rp "Press Enter to return to menu..." _; }
@@ -26,8 +27,7 @@ confirm_phrase() {
 }
 
 while true; do
-  clear
-  echo "============================================================"
+clear || true  echo "============================================================"
   echo " JR PI TOOLKIT — GOLDEN SD / NVMe TOOLKIT (HEADLESS SAFE)"
   echo "============================================================"
   echo
@@ -39,6 +39,7 @@ while true; do
     echo "Pi-Apps:      not installed"
   fi
   echo
+
   echo "Menu"
   echo "----"
   echo "0) Set NVMe first-boot network (Ethernet/Wi-Fi)          [SD only]"
@@ -48,6 +49,7 @@ while true; do
   echo "4) Exit"
   echo "5) Install Pi-Apps (menu-driven)                         [NVMe only]"
   echo "6) Health Check (log to /var/log/jr-pi-toolkit)          [NVMe only]"
+  echo "7) Backup / Imaging (SD image, sanitize)                 [NVMe only]"
   echo "9) Help / Checklist (what to do, in what order)"
   echo
   read -rp "Select: " choice
@@ -99,6 +101,12 @@ while true; do
       sudo "$TOOLKIT_ROOT/jr-health-check.sh"
       pause
       ;;
+    7)
+      [[ "$BOOT_MODE" == "NVME" ]] || { echo "ERROR: NVMe only."; pause; continue; }
+      [[ -x "$TOOLKIT_ROOT/jr-backup-menu.sh" ]] || { echo "ERROR: Missing jr-backup-menu.sh"; pause; continue; }
+      sudo "$TOOLKIT_ROOT/jr-backup-menu.sh"
+      pause
+      ;;
     9)
       echo
       echo "CHECKLIST (Golden SD -> NVMe, headless)"
@@ -109,10 +117,6 @@ while true; do
       echo "5) Boot from NVMe once. SSH should come up as jr with keys."
       echo "6) From NVMe, run provisioning only when YOU choose (Option 3)."
       echo "7) Pi-Apps and workload installs are menu items, not automatic."
-      echo
-      echo "RULES"
-      echo "- Ethernet is baseline. Wi-Fi stays unconfigured unless you do it manually later."
-      echo "- SD is installer/recovery media. NVMe is normal operation."
       echo
       pause
       ;;
