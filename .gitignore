@@ -2,3 +2,6 @@
 *.bak.*
 provision.sh.bak.*
 # Toolkit backup artifacts
+
+# Toolkit runtime data (do NOT commit user keys)
+keys/public/
