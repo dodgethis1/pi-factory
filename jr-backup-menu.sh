@@ -65,9 +65,10 @@ while true; do
       bash "${SCRIPT_DIR}/jr-sanitize-for-imaging.sh"
       pause
       ;;
-    0)
-      exit 0
-      ;;
+      0)
+        break
+        ;;
+
     *)
       echo "Pick 0-4."
       pause
