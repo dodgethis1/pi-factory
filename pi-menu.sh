@@ -26,41 +26,47 @@ confirm_phrase() {
   [[ "${typed:-}" == "$phrase" ]]
 }
 
+menu_line() {
+  local num="$1"
+  local text="$2"
+  local tag="${3:-}"
+  printf "%-4s %-60s %s\n" "${num})" "${text}" "${tag}"
+}
+
 while true; do
   clear || true
-echo "============================================================"
+  echo "==============================================================="
   echo " JR PI TOOLKIT - GOLDEN SD / NVMe TOOLKIT (HEADLESS SAFE)"
-  echo "============================================================"
+  echo "==============================================================="
   echo
-  echo "Detected root: $ROOT_SRC"
-  echo "Toolkit root:  $TOOLKIT_ROOT"
+  echo "Detected root: ${ROOT_SRC}"
+  echo "Toolkit root:  ${TOOLKIT_ROOT}"
   if [[ -x /home/jr/pi-apps/pi-apps || -x /home/jr/pi-apps/updater ]]; then
-    echo "Pi-Apps:      installed (/home/jr/pi-apps)"
+    echo "Pi-Apps:       installed (/home/jr/pi-apps)"
   else
-    echo "Pi-Apps:      not installed"
+    echo "Pi-Apps:       not installed"
   fi
   echo
-
   echo "Menu"
   echo "----"
-  echo "0) Exit"
-  echo "1) Set NVMe first-boot network (Ethernet/Wi-Fi)          [SD only]"
-  echo "2) First-run setup (Golden SD prep, networking, tools)   [SD only]"
-  echo "3) Flash NVMe + seed identity (DESTRUCTIVE)              [SD only]"
-  echo "4) Re-run provisioning                                   [NVMe only]"
-  echo "5) Install Pi-Apps (menu-driven)                         [NVMe only]"
-  echo "6) Health Check (log to /var/log/jr-pi-toolkit)          [NVMe only]"
-  echo "7) Backup / Imaging (SD image, sanitize)                 [NVMe only]"
-  echo "8) Status Dashboard (jr-status.sh)"
-  echo "9) Help / Checklist (what to do, in what order)"
-  echo "10) Re-seed identity from Golden SD (requires SD inserted)     [NVMe only]"
-  echo "11) Power (reboot/poweroff/ssh)                          [ALL]"
-  echo "12) Update toolkit from GitHub (fast-forward only)       [ALL]"
+  menu_line 0  "Exit"
+  menu_line 1  "Set NVMe first-boot network (Ethernet/Wi-Fi)"                 "[SD only]"
+  menu_line 2  "First-run setup (Golden SD prep, networking, tools)"          "[SD only]"
+  menu_line 3  "Flash NVMe + seed identity (DESTRUCTIVE)"                     "[SD only]"
+  menu_line 4  "Re-run provisioning"                                          "[NVMe only]"
+  menu_line 5  "Install Pi-Apps (menu-driven)"                                "[NVMe only]"
+  menu_line 6  "Health Check (log to /var/log/jr-pi-toolkit)"                 "[NVMe only]"
+  menu_line 7  "Backup / Imaging (SD image, sanitize)"                        "[NVMe only]"
+  menu_line 8  "Status Dashboard (jr-status.sh)"
+  menu_line 9  "Help / Checklist (what to do, in what order)"
+  menu_line 10 "Re-seed identity from Golden SD (requires SD inserted)"       "[NVMe only]"
+  menu_line 11 "Power (reboot/poweroff/ssh)"                                  "[ALL]"
+  menu_line 12 "Update toolkit from GitHub (fast-forward only)"               "[ALL]"
+  menu_line 13 "Seed SSH keys for jr from toolkit (public keys)"              "[ALL]"
   echo
 
   read -rp "Select: " choice
 
-  # Fast exit
   if [[ "${choice:-}" == "0" ]]; then
     echo "Exiting JR Pi Toolkit."
     exit 0
@@ -132,6 +138,10 @@ echo "============================================================"
       echo "7) From NVMe, run provisioning only when YOU choose (Option 4)."
       echo "8) Pi-Apps and workload installs are menu items, not automatic."
       echo
+      echo "SSH keys for BOTH PCs:"
+      echo " - Put public keys into: ${TOOLKIT_ROOT}/keys/public/"
+      echo " - Then run Option 13"
+      echo
       pause
       ;;
     10)
@@ -147,6 +157,11 @@ echo "============================================================"
     12)
       [[ -x "$TOOLKIT_ROOT/jr-self-update.sh" ]] || { echo "ERROR: Missing jr-self-update.sh"; pause; continue; }
       "$TOOLKIT_ROOT/jr-self-update.sh" || true
+      ;;
+    13)
+      [[ -x "$TOOLKIT_ROOT/jr-seed-ssh-keys.sh" ]] || { echo "ERROR: Missing jr-seed-ssh-keys.sh"; pause; continue; }
+      sudo "$TOOLKIT_ROOT/jr-seed-ssh-keys.sh" || true
+      pause
       ;;
     *)
       echo "Invalid selection."
