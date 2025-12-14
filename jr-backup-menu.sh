@@ -1,46 +1,76 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
-pause(){ read -rp "Press Enter to return..." _; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+USB_MOUNT="/mnt/jr-backup"
+USB_ROOT="${USB_MOUNT}/jr-backups"
 
-while true; do
+pause() { read -r -p "Press Enter to continue..." _; }
+
+header() {
   clear
-  echo "============================================================"
-  echo " JR PI TOOLKIT — BACKUP / IMAGING"
-  echo "============================================================"
+  echo "==============================================================="
+  echo "  JR PI TOOLKIT - BACKUP / IMAGING"
+  echo "==============================================================="
   echo
-  echo "USB root: /mnt/jr-backup/jr-backups"
+  echo "USB mount: ${USB_MOUNT}"
+  echo "USB root : ${USB_ROOT}"
   echo
+}
 
-  if [[ -d /mnt/jr-backup/jr-backups ]]; then
-    echo "Backup target: OK"
-  else
-    echo "Backup target: MISSING"
-    echo "Fix: mount USB and bind-mount to /mnt/jr-backup first."
+ensure_usb() {
+  if ! mountpoint -q "${USB_MOUNT}"; then
+    echo "ERROR: ${USB_MOUNT} is not mounted."
+    echo "Fix: plug in the backup USB and run:  sudo mount -a"
+    echo
+    return 1
   fi
 
-  echo
-  echo "1) Image Golden SD (/dev/mmcblk0) -> USB (.img.xz)"
-  echo "2) Sanitize this OS for cloning (removes machine-id + SSH host keys)"
-  echo "3) Exit"
-  echo
-  read -rp "Select: " c
+  mkdir -p "${USB_ROOT}"
+  return 0
+}
 
-  case "${c:-}" in
+while true; do
+  header
+  echo "1) Show disk + USB status (lsblk/df)"
+  echo "2) Create/verify USB folder structure"
+  echo "3) Image Golden SD -> USB (jr-image-golden-sd-to-usb.sh)"
+  echo "4) Sanitize for imaging (jr-sanitize-for-imaging.sh)"
+  echo "0) Back"
+  echo
+
+  read -r -p "Choose: " choice
+  case "${choice}" in
     1)
-      sudo /opt/jr-pi-toolkit/jr-image-golden-sd-to-usb.sh
+      lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL
+      echo
+      df -h "${USB_MOUNT}" 2>/dev/null || true
       pause
       ;;
     2)
-      sudo /opt/jr-pi-toolkit/jr-sanitize-for-imaging.sh
+      if ensure_usb; then
+        echo "OK: ${USB_ROOT} is ready."
+        echo
+        find "${USB_MOUNT}" -maxdepth 2 -type d -print 2>/dev/null || true
+      fi
       pause
       ;;
     3)
+      if ensure_usb; then
+        bash "${SCRIPT_DIR}/jr-image-golden-sd-to-usb.sh"
+      fi
+      pause
+      ;;
+    4)
+      bash "${SCRIPT_DIR}/jr-sanitize-for-imaging.sh"
+      pause
+      ;;
+    0)
       exit 0
       ;;
     *)
-      echo "Invalid selection."
-      sleep 1
+      echo "Pick 0-4."
+      pause
       ;;
   esac
 done
