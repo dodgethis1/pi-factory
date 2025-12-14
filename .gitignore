@@ -5,3 +5,6 @@ provision.sh.bak.*
 
 # Toolkit runtime data (do NOT commit user keys)
 keys/public/
+
+# Toolkit runtime data (do NOT commit user keys)
+keys/public/
