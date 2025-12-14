@@ -14,7 +14,14 @@ else
   BOOT_MODE="NVME"
 fi
 
-pause() { read -rp "Press Enter to return to menu..." _; }
+pause() {
+  # Read from the controlling TTY so menus don't "blink" when stdin isn't a TTY.
+  if [[ -r /dev/tty ]]; then
+    read -rp "Press Enter to return to menu..." _ < /dev/tty || true
+  else
+    read -rp "Press Enter to return to menu..." _ || true
+  fi
+}
 
 confirm_phrase() {
   local phrase="$1"
@@ -211,9 +218,43 @@ while true; do
       ;;
     8)
       [[ -x "$TOOLKIT_ROOT/jr-status.sh" ]] || { echo "ERROR: Missing jr-status.sh"; pause; continue; }
-      run_logged "08-status" "$TOOLKIT_ROOT/jr-status.sh" || true
+
+      # Option 8 should show output AND log it.
+      ts="$(date +%Y%m%d-%H%M%S)"
+      if mkdir -p /var/log/jr-pi-toolkit 2>/dev/null && [[ -w /var/log/jr-pi-toolkit ]]; then
+        log_dir="/var/log/jr-pi-toolkit"
+      else
+        log_dir="${HOME}/.local/state/jr-pi-toolkit/logs"
+        mkdir -p "$log_dir" 2>/dev/null || true
+      fi
+
+      log="$log_dir/menu-${ts}-08-status.log"
+      ln -sf "$log" "$log_dir/last-run.log" 2>/dev/null || true
+
+      {
+        echo "=== BEGIN 08-status @ $(date -Is) ==="
+        echo "root:        ${ROOT_SRC}"
+        echo "toolkit:     ${TOOLKIT_ROOT}"
+        echo "mode:        ${BOOT_MODE}"
+        echo "command:     ${TOOLKIT_ROOT}/jr-status.sh"
+        echo
+      } >> "$log" 2>&1
+
+      set +e
+      { "$TOOLKIT_ROOT/jr-status.sh"; } 2>&1 | tee -a "$log"
+      rc=${PIPESTATUS[0]}
+      set -e
+
+      {
+        echo
+        echo "=== END rc=${rc} @ $(date -Is) ==="
+      } >> "$log" 2>&1
+
+      echo
+      echo "Saved log: $log"
       pause
       ;;
+
     9)
       echo
       echo "CHECKLIST (Golden SD -> NVMe, headless)"
@@ -240,7 +281,7 @@ while true; do
       ;;
     11)
       [[ -x "$TOOLKIT_ROOT/jr-power-menu.sh" ]] || { echo "ERROR: Missing jr-power-menu.sh"; pause; continue; }
-      run_logged "11-power" "$TOOLKIT_ROOT/jr-power-menu.sh" || true
+      bash "$TOOLKIT_ROOT/jr-power-menu.sh" </dev/tty >/dev/tty 2>&1 || true || true
       ;;
     12)
       [[ -x "$TOOLKIT_ROOT/jr-self-update.sh" ]] || { echo "ERROR: Missing jr-self-update.sh"; pause; continue; }
@@ -260,14 +301,14 @@ while true; do
 
   15)
     [[ -x "$TOOLKIT_ROOT/jr-cases-menu.sh" ]] || { echo "ERROR: Missing jr-cases-menu.sh"; pause; continue; }
-    run_logged "15-cases-menu" bash "$TOOLKIT_ROOT/jr-cases-menu.sh"
+    bash "$TOOLKIT_ROOT/jr-cases-menu.sh" </dev/tty >/dev/tty 2>&1 || true
     pause
     ;;
 
 
       16)
         [[ -x "$TOOLKIT_ROOT/jr-doctor-menu.sh" ]] || { echo "ERROR: Missing jr-doctor-menu.sh"; pause; continue; }
-        run_logged "16-doctor-menu" bash "$TOOLKIT_ROOT/jr-doctor-menu.sh"
+        bash "$TOOLKIT_ROOT/jr-doctor-menu.sh" </dev/tty >/dev/tty 2>&1 || true
         ;;
       L|l)
         if [[ -f /var/log/jr-pi-toolkit/last-run.log ]]; then
