@@ -43,13 +43,13 @@ if [[ "$confirmation" != "DESTROY" ]]; then
     exit 1
 fi
 
-# 2. Download Image (Always fetch fresh latest)
-echo "Downloading LATEST Raspberry Pi OS (64-bit)..."
+# 2. Download Image (Smart Cache)
+echo "Checking for Raspberry Pi OS updates..."
 echo "URL: $LATEST_URL"
-# We delete any old image to force a fresh download of the latest
-rm -f "$IMAGE_FILE" 
 
-curl -L -o "$IMAGE_FILE" "$LATEST_URL"
+# Download only if remote is newer than local file (-z)
+# -L follows redirects, -R sets local timestamp (critical for -z), -o output
+curl -L -R -z "$IMAGE_FILE" -o "$IMAGE_FILE" "$LATEST_URL"
 
 # Verify download
 if [[ ! -s "$IMAGE_FILE" ]]; then
