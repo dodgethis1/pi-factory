@@ -44,7 +44,9 @@ main_menu() {
         echo "3) Install Software (Pi-Apps, RPi Connect, Repo)"
         echo "4) Install Case Software (Pironman, Argon)"
         echo "5) Install Extras (Docker, Tailscale, Cockpit)"
-        echo "6) Update Toolkit (Pull latest from GitHub)"
+        echo "6) System Updates (OS Upgrade & Firmware)"
+        echo "7) Power Options (Reboot, Shutdown)"
+        echo "8) Update Toolkit (Pull latest from GitHub)"
         echo "0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -66,8 +68,22 @@ main_menu() {
                 bash "$BASE_DIR/30-software/install-extras.sh"
                 ;;
             6)
-                echo "Updating..."
-                git pull || echo "Update failed (not a git repo?)"
+                echo "Running System Updates..."
+                apt-get update && apt-get full-upgrade -y
+                echo "Cleaning up..."
+                apt-get autoremove -y
+                echo "Update Complete."
+                ;;
+            7)
+                echo "1) Reboot"
+                echo "2) Shutdown (Power Off)"
+                read -rp "Select: " pwr
+                if [[ "$pwr" == "1" ]]; then reboot; fi
+                if [[ "$pwr" == "2" ]]; then poweroff; fi
+                ;;
+            8)
+                echo "Updating Toolkit..."
+                git -C "$BASE_DIR" pull || echo "Update failed."
                 sleep 2
                 ;;
             0)
