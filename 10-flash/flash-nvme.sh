@@ -85,6 +85,13 @@ echo "Setting permissions..."
 chmod +x "$MOUNT_POINT/opt/pi-factory/main.sh"
 chmod +x "$MOUNT_POINT/opt/pi-factory/"*/*.sh || true
 
+echo "Installing global shortcut on target..."
+TARGET_BIN="$MOUNT_POINT/usr/local/bin/pi-factory"
+echo "#!/bin/bash" > "$TARGET_BIN"
+echo "cd /opt/pi-factory" >> "$TARGET_BIN"
+echo "sudo bash main.sh" >> "$TARGET_BIN"
+chmod +x "$TARGET_BIN"
+
 echo "Unmounting..."
 umount "$MOUNT_POINT"
 
