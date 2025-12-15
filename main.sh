@@ -40,7 +40,7 @@ main_menu() {
     while true; do
         show_header
         echo "1) [DESTRUCTIVE] Flash NVMe Drive (Wipe & Install OS)"
-        echo "2) Configure System (User, Network, SSH, Security)"
+        echo "2) Seed NVMe (Create User, Wifi, SSH Keys - Run from SD)"
         echo "3) Install Software (Pi-Apps, RPi Connect, Repo)"
         echo "4) Install Case Software (Pironman, Argon)"
         echo "5) Install Extras (Docker, Tailscale, Cockpit)"
@@ -57,7 +57,7 @@ main_menu() {
                 bash "$BASE_DIR/10-flash/flash-nvme.sh"
                 ;;
             2)
-                bash "$BASE_DIR/20-configure/configure-system.sh"
+                bash "$BASE_DIR/20-configure/seed-nvme.sh"
                 ;;
             3)
                 bash "$BASE_DIR/30-software/install-apps.sh"
