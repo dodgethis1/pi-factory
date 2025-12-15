@@ -42,7 +42,9 @@ main_menu() {
         echo "1) [DESTRUCTIVE] Flash NVMe Drive (Wipe & Install OS)"
         echo "2) Configure System (User, Network, SSH, Security)"
         echo "3) Install Software (Pi-Apps, RPi Connect, Repo)"
-        echo "4) Update Toolkit (Pull latest from GitHub)"
+        echo "4) Install Case Software (Pironman, Argon)"
+        echo "5) Install Extras (Docker, Tailscale, Cockpit)"
+        echo "6) Update Toolkit (Pull latest from GitHub)"
         echo "0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -58,6 +60,12 @@ main_menu() {
                 bash "$BASE_DIR/30-software/install-apps.sh"
                 ;;
             4)
+                bash "$BASE_DIR/30-software/install-cases.sh"
+                ;;
+            5)
+                bash "$BASE_DIR/30-software/install-extras.sh"
+                ;;
+            6)
                 echo "Updating..."
                 git pull || echo "Update failed (not a git repo?)"
                 sleep 2

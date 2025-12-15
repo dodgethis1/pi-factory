@@ -24,9 +24,11 @@
     sudo bash main.sh
     ```
 3.  **Follow the Menu:**
-    *   **Step 1:** Flash the NVMe drive (Destructive!).
-    *   **Step 2:** Configure the system (User, Network, Keys).
-    *   **Step 3:** Install Software (Pi-Apps, RPi Connect).
+    *   **Option 1:** Flash the NVMe drive (Destructive!).
+    *   **Option 2:** Configure the system (User, Network, Keys).
+    *   **Option 3:** Install Main Software (Pi-Apps, RPi Connect).
+    *   **Option 4:** Install Case Drivers (Pironman 5 Max, Argon One).
+    *   **Option 5:** Install Extras (Docker, Tailscale, Cockpit).
 
 ## 📂 Project Structure
 
