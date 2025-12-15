@@ -35,6 +35,16 @@ if [[ ! -b "$NVME_DEV" ]]; then
 fi
 
 echo "Target Drive: $NVME_DEV"
+
+# Safety Check: Verify drive size
+DRIVE_SIZE=$(blockdev --getsize64 "$NVME_DEV" 2>/dev/null || echo 0)
+if [[ "$DRIVE_SIZE" -lt 4000000000 ]]; then
+    echo "CRITICAL ERROR: Target drive reported size is too small ($DRIVE_SIZE bytes)."
+    echo "This indicates the drive has disconnected or is failing."
+    echo "DIAGNOSTIC: Check your ribbon cable and power."
+    exit 1
+fi
+
 echo "WARNING: ALL DATA ON $NVME_DEV WILL BE ERASED."
 echo "Type 'DESTROY' to continue:"
 read -r confirmation
@@ -66,7 +76,16 @@ xzcat "$IMAGE_FILE" | dd of="$NVME_DEV" bs=4M status=progress conv=fsync iflag=f
 
 echo "Flash Complete. Re-reading partition table..."
 partprobe "$NVME_DEV" || true
+udevadm settle || true
 sleep 3
+
+# Verify partition exists
+if [[ ! -b "${NVME_DEV}p2" ]]; then
+    echo "ERROR: Partition ${NVME_DEV}p2 not found after flashing."
+    echo "The write may have failed silently or the kernel didn't refresh."
+    lsblk "$NVME_DEV"
+    exit 1
+fi
 
 # 4. Bootstrap Toolkit to NVMe
 # We need to mount the new partitions and copy this toolkit over.
