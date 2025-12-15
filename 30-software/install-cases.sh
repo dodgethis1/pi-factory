@@ -41,10 +41,9 @@ install_pironman() {
 }
 
 install_argon() {
-    echo "Installing Argon One V3 software..."
-    curl https://download.argon40.com/argon1.sh | bash
-    echo "Argon One V3 installed."
-    echo "Use 'argon-config' to configure fan speeds."
+    echo "Installing Argon One V5 software..."
+    curl https://download.argon40.com/argon1v5.sh | bash
+    echo "Argon One V5 installed."
 }
 
 while true; do
