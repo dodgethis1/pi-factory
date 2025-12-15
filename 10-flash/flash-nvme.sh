@@ -8,19 +8,10 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 CONFIG_FILE="$BASE_DIR/config/settings.conf"
 source "$CONFIG_FILE"
 
-# RPi OS Download URL (Latest 64-bit Bookworm)
-# We can use the 'raspios_arm64_latest' redirector
-IMAGE_URL="https://downloads.raspberrypi.com/raspios_arm64/images/raspios_arm64-2024-11-19/2024-11-19-raspios-bookworm-arm64.img.xz"
-# Note: A static URL is safer for a script than parsing HTML, but it goes stale.
-# Better approach: Use the 'latest' redirector if possible, or accept the risk.
-# For stability, I'll use the specific "Bookworm" latest link if available, 
-# but usually https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2024-07-04/...
-# Let's use the 'latest' symlink approach if we can, or just hardcode the known "Latest" for now 
-# and add a TODO to make it dynamic.
-# Actually, the direct link to "latest" is:
-LATEST_URL="https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2024-11-19/2024-11-19-raspios-bookworm-arm64.img.xz"
-# Start with a fixed reliable URL for the "latest" known stable. 
-# Update this if the user wants strictly "latest available at runtime".
+# RPi OS Download URL (Latest 64-bit Bookworm Desktop)
+# We use the official "latest" redirector to ensure we always get the newest version.
+IMAGE_URL="https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2024-11-19/2024-11-19-raspios-bookworm-arm64.img.xz"
+LATEST_URL="https://downloads.raspberrypi.org/raspios_arm64_latest"
 
 IMAGE_FILE="$BASE_DIR/10-flash/raspios-latest.img.xz"
 
@@ -52,18 +43,18 @@ if [[ "$confirmation" != "DESTROY" ]]; then
     exit 1
 fi
 
-# 2. Download Image (if not present)
-if [[ ! -f "$IMAGE_FILE" ]]; then
-    echo "Downloading Raspberry Pi OS (64-bit)..."
-    # We use curl with -L to follow redirects
-    # NOTE: In a real script, we might scrape the https://downloads.raspberrypi.org/raspios_arm64/images/ page
-    # to find the absolute latest. For now, we will assume we want the latest known stable.
-    # To be truly robust, let's use the 'latest' zip if possible, or just ask the user to provide it.
-    # Let's try downloading the 'latest' redirect.
-    echo "Fetching from $LATEST_URL ..."
-    curl -L -o "$IMAGE_FILE" "$LATEST_URL"
-else
-    echo "Using existing image: $IMAGE_FILE"
+# 2. Download Image (Always fetch fresh latest)
+echo "Downloading LATEST Raspberry Pi OS (64-bit)..."
+echo "URL: $LATEST_URL"
+# We delete any old image to force a fresh download of the latest
+rm -f "$IMAGE_FILE" 
+
+curl -L -o "$IMAGE_FILE" "$LATEST_URL"
+
+# Verify download
+if [[ ! -s "$IMAGE_FILE" ]]; then
+    echo "ERROR: Download failed or file is empty."
+    exit 1
 fi
 
 # 3. Flash
