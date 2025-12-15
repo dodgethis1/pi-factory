@@ -49,6 +49,7 @@ main_menu() {
         echo "8) Clone Toolkit (Copy to USB/SD)"
         echo "9) Apply NVMe Kernel Fixes (Stability)"
         echo "10) Update Toolkit (Pull latest from GitHub)"
+        echo "99) Run NVMe Diagnostics (Speed & Health Check)"
         echo "0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -93,6 +94,9 @@ main_menu() {
                 echo "Updating Toolkit..."
                 git -C "$BASE_DIR" pull || echo "Update failed."
                 sleep 2
+                ;;
+            99)
+                bash "$BASE_DIR/99-diagnostics/nvme-test.sh"
                 ;;
             0)
                 echo "Exiting."
