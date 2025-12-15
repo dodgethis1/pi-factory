@@ -47,7 +47,8 @@ main_menu() {
         echo "6) System Updates (OS Upgrade & Firmware)"
         echo "7) Power Options (Reboot, Shutdown)"
         echo "8) Clone Toolkit (Copy to USB/SD)"
-        echo "9) Update Toolkit (Pull latest from GitHub)"
+        echo "9) Apply NVMe Kernel Fixes (Stability)"
+        echo "10) Update Toolkit (Pull latest from GitHub)"
         echo "0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -86,6 +87,9 @@ main_menu() {
                 bash "$BASE_DIR/40-utils/clone-toolkit.sh"
                 ;;
             9)
+                bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
+                ;;
+            10)
                 echo "Updating Toolkit..."
                 git -C "$BASE_DIR" pull || echo "Update failed."
                 sleep 2
