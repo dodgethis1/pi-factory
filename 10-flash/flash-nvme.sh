@@ -58,8 +58,11 @@ if [[ ! -s "$IMAGE_FILE" ]]; then
 fi
 
 # 3. Flash
+echo "Unmounting any existing partitions on target..."
+umount "${NVME_DEV}p1" "${NVME_DEV}p2" 2>/dev/null || true
+
 echo "Flashing NVMe... (This may take a few minutes)"
-xzcat "$IMAGE_FILE" | dd of="$NVME_DEV" bs=4M status=progress conv=fsync
+xzcat "$IMAGE_FILE" | dd of="$NVME_DEV" bs=4M status=progress conv=fsync iflag=fullblock
 
 echo "Flash Complete. Re-reading partition table..."
 partprobe "$NVME_DEV" || true
