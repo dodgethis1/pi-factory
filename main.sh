@@ -40,16 +40,16 @@ main_menu() {
     while true; do
         show_header
         echo "1) [DESTRUCTIVE] Flash NVMe Drive (Wipe & Install OS)"
-        echo "2) Seed NVMe (Create User, Wifi, SSH Keys - Run from SD)"
-        echo "3) Install Software (Pi-Apps, RPi Connect, Repo)"
-        echo "4) Install Case Software (Pironman, Argon)"
-        echo "5) Install Extras (Docker, Tailscale, Cockpit)"
-        echo "6) System Updates (OS Upgrade & Firmware)"
-        echo "7) Power Options (Reboot, Shutdown)"
-        echo "8) Clone Toolkit (Copy to USB/SD)"
-        echo "9) Apply NVMe Kernel Fixes (Stability)"
-        echo "10) Force PCIe Gen 1 (Max Stability - Slower)"
-        echo "11) Update Toolkit (Pull latest from GitHub)"
+        echo "2) Seed NVMe (Create User, Wifi, SSH Keys - FROM SD)"
+        echo "3) Configure Live System (User, Wifi, SSH - ON NVMe)"
+        echo "4) Install Software (Pi-Apps, RPi Connect, Repo)"
+        echo "5) Install Case Software (Pironman, Argon)"
+        echo "6) Install Extras (Docker, Tailscale, Cockpit)"
+        echo "7) System Updates (OS Upgrade & Firmware)"
+        echo "8) Power Options (Reboot, Shutdown)"
+        echo "9) Clone Toolkit (Copy to USB/SD)"
+        echo "10) Apply NVMe Kernel Fixes (Stability)"
+        echo "11) Force PCIe Gen 1 (Max Stability - Slower)"
         echo "99) Run NVMe Diagnostics (Speed & Health Check)"
         echo "0) Exit"
         echo
@@ -60,44 +60,42 @@ main_menu() {
                 bash "$BASE_DIR/10-flash/flash-nvme.sh"
                 ;;
             2)
-                bash "$BASE_DIR/20-configure/seed-nvme.sh"
+                bash "$BASE_DIR/20-configure/seed-offline.sh"
                 ;;
             3)
-                bash "$BASE_DIR/30-software/install-apps.sh"
+                bash "$BASE_DIR/20-configure/configure-live.sh"
                 ;;
             4)
-                bash "$BASE_DIR/30-software/install-cases.sh"
+                bash "$BASE_DIR/30-software/install-apps.sh"
                 ;;
             5)
-                bash "$BASE_DIR/30-software/install-extras.sh"
+                bash "$BASE_DIR/30-software/install-cases.sh"
                 ;;
             6)
+                bash "$BASE_DIR/30-software/install-extras.sh"
+                ;;
+            7)
                 echo "Running System Updates..."
                 apt-get update && apt-get full-upgrade -y
                 echo "Cleaning up..."
                 apt-get autoremove -y
                 echo "Update Complete."
                 ;;
-            7)
+            8)
                 echo "1) Reboot"
                 echo "2) Shutdown (Power Off)"
                 read -rp "Select: " pwr
                 if [[ "$pwr" == "1" ]]; then reboot; fi
                 if [[ "$pwr" == "2" ]]; then poweroff; fi
                 ;;
-            8)
+            9)
                 bash "$BASE_DIR/40-utils/clone-toolkit.sh"
                 ;;
-            9)
+            10)
                 bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
                 ;;
-            10)
-                bash "$BASE_DIR/40-utils/force-pcie-gen1.sh"
-                ;;
             11)
-                echo "Updating Toolkit..."
-                git -C "$BASE_DIR" pull || echo "Update failed."
-                sleep 2
+                bash "$BASE_DIR/40-utils/force-pcie-gen1.sh"
                 ;;
             99)
                 bash "$BASE_DIR/99-diagnostics/nvme-test.sh"
