@@ -8,12 +8,13 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 CONFIG_FILE="$BASE_DIR/config/settings.conf"
 source "$CONFIG_FILE"
 
-# RPi OS Download URL (Latest 64-bit Bookworm Desktop)
+# RPi OS Download URL (Latest 64-bit Bookworm Full Desktop)
 # We use the official "latest" redirector to ensure we always get the newest version.
-IMAGE_URL="https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2024-11-19/2024-11-19-raspios-bookworm-arm64.img.xz"
-LATEST_URL="https://downloads.raspberrypi.org/raspios_arm64_latest"
+# "raspios_full_arm64_latest" includes recommended software.
+IMAGE_URL="https://downloads.raspberrypi.org/raspios_full_arm64_latest"
+LATEST_URL="https://downloads.raspberrypi.org/raspios_full_arm64_latest"
 
-IMAGE_FILE="$BASE_DIR/10-flash/raspios-latest.img.xz"
+IMAGE_FILE="$BASE_DIR/10-flash/raspios-full-latest.img.xz"
 
 # Detect NVMe
 NVME_DEV="/dev/nvme0n1"
