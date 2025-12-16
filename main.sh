@@ -42,6 +42,18 @@ get_sys_info() {
     else
         CPU_TEMP="N/A"
     fi
+
+    # Boot Media Detection
+    ROOT_DEV=$(findmnt / -o SOURCE -n)
+    if [[ "$ROOT_DEV" == *mmcblk* ]]; then
+        BOOT_MEDIA="SD Card"
+    elif [[ "$ROOT_DEV" == *nvme* ]]; then
+        BOOT_MEDIA="NVMe SSD"
+    elif [[ "$ROOT_DEV" == *sd* ]]; then
+        BOOT_MEDIA="USB/SATA"
+    else
+        BOOT_MEDIA="Unknown ($ROOT_DEV)"
+    fi
 }
 
 # Helper: Banner
@@ -49,10 +61,10 @@ show_header() {
     get_sys_info
     clear
     echo -e "${BLUE}================================================================${NC}"
-    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.2${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
+    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.3${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
     echo -e "${BLUE}================================================================${NC}"
     echo -e " User: ${CYAN}$TARGET_USER${NC}  |  Host: ${CYAN}$TARGET_HOSTNAME${NC}  |  IP: ${CYAN}$MY_IP${NC}"
-    echo -e " Zone: ${CYAN}$TARGET_TIMEZONE${NC}  |  Temp: ${YELLOW}$CPU_TEMP${NC}"
+    echo -e " Zone: ${CYAN}$TARGET_TIMEZONE${NC}  |  Temp: ${YELLOW}$CPU_TEMP${NC}   |  Boot: ${YELLOW}$BOOT_MEDIA${NC}"
     echo -e "${BLUE}----------------------------------------------------------------${NC}"
 }
 
@@ -63,12 +75,12 @@ main_menu() {
         show_header
         
         echo -e "${RED}${BOLD} [ PROVISIONING ]${NC}"
-        echo -e "  1) ${RED}Flash NVMe Drive${NC}     (Wipe & Install OS)"
-        echo -e "  2) ${YELLOW}Seed NVMe (Offline)${NC}   (Configure from SD card)"
+        echo -e "  1) ${RED}Flash NVMe Drive${NC}     [Run from SD/USB] (Wipe & Install OS)"
+        echo -e "  2) ${YELLOW}Seed NVMe (Offline)${NC}   [Run from SD/USB] (Configure target NVMe)"
         echo
         
         echo -e "${BLUE}${BOLD} [ CONFIGURATION ]${NC}"
-        echo -e "  3) Configure Live System (User, Wifi, SSH, GitHub Keys)"
+        echo -e "  3) Configure Live System [Run from NVMe]   (User, Wifi, SSH, GitHub Keys)"
         echo -e "  4) Install Apps          (Pi-Apps, RPi Connect)"
         echo -e "  5) Install Cases         (Pironman, Argon)"
         echo -e "  6) Install Extras        (Docker, Tailscale, Cockpit)"
@@ -82,7 +94,7 @@ main_menu() {
         echo
         
         echo -e "${YELLOW}${BOLD} [ HARDWARE TUNING ]${NC}"
-        echo -e " 11) Set PCIe Speed       (Gen 1 / Gen 2 / Gen 3)"
+        echo -e " 11) Set PCIe Speed       [Pi 5 Only] (Gen 1 / Gen 2 / Gen 3)"
         echo -e " 12) Pi Overclocking      (CPU Frequency & Voltage)"
         echo -e " 13) Apply NVMe Fixes     (Kernel Stability)"
         echo -e " 14) Update Bootloader    (EEPROM Firmware)"
@@ -91,7 +103,7 @@ main_menu() {
         echo -e "${CYAN}${BOLD} [ MAINTENANCE ]${NC}"
         echo -e " 15) System Updates       (OS Upgrade & Firmware)"
         echo -e " 16) System Cleanup       (Free up disk space)"
-        echo -e " 17) Backup Drive         (Create compressed image)"
+        echo -e " 17) Backup Drive         [Run from SD/USB] (Create compressed image)"
         echo -e " 18) Clone Toolkit        (Backup to USB/SD)"
         echo
         
@@ -103,7 +115,15 @@ main_menu() {
 
         case "$choice" in
             1)
-                bash "$BASE_DIR/10-flash/flash-nvme.sh"
+                # Extra Safety Check
+                if [[ "$BOOT_MEDIA" == "NVMe SSD" ]]; then
+                    echo -e "${RED}ERROR: You are currently booted from NVMe.${NC}"
+                    echo "You cannot flash the drive you are running on."
+                    echo "Please boot from the Golden SD Card to use this function."
+                    read -rp "Press Enter to continue..."
+                else
+                    bash "$BASE_DIR/10-flash/flash-nvme.sh"
+                fi
                 ;;
             2)
                 bash "$BASE_DIR/20-configure/seed-offline.sh"

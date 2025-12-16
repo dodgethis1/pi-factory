@@ -30,6 +30,30 @@ fi
 
 SOURCE_DEV="/dev/$SOURCE_DEV_NAME"
 
+# CRITICAL SAFETY CHECK: Prevent backing up the boot drive
+ROOT_PART=$(findmnt / -o SOURCE -n)
+# Resolve symlinks (e.g., /dev/root -> /dev/mmcblk0p2)
+ROOT_PART_REAL=$(realpath "$ROOT_PART")
+# Get parent device of root partition (e.g., /dev/mmcblk0p2 -> /dev/mmcblk0)
+ROOT_DISK=$(lsblk -no PKNAME "$ROOT_PART_REAL")
+# Handle NVMe/MMC naming which might be different, or standard sdX
+if [[ -z "$ROOT_DISK" ]]; then
+    # Fallback if PKNAME is empty (unlikely on standard systems)
+    ROOT_DISK="$ROOT_PART_REAL"
+fi
+
+# Compare selected source with root disk
+# We compare the device names (e.g. mmcblk0 vs mmcblk0)
+SOURCE_NAME_ONLY=$(basename "$SOURCE_DEV")
+ROOT_NAME_ONLY=$(basename "$ROOT_DISK")
+
+if [[ "$SOURCE_NAME_ONLY" == "$ROOT_NAME_ONLY" ]]; then
+    echo -e "${RED}CRITICAL ERROR: You are trying to backup the ACTIVE BOOT DRIVE ($ROOT_DISK).${NC}"
+    echo "Creating a raw image of a mounted, live OS leads to corruption."
+    echo "Please boot from a different drive (e.g. SD card) to backup this drive."
+    exit 1
+fi
+
 if [[ ! -b "$SOURCE_DEV" ]]; then
     echo -e "${RED}ERROR: Source device $SOURCE_DEV not found or is not a block device. Aborting.${NC}"
     exit 1
