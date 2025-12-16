@@ -1,3 +1,21 @@
-backup/
-*.log
+# Ignore common temporary and build files
+*~
+*.swp
 *.bak
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+
+# Ignore backups directory if created locally
+/var/backups/
+/var/log/
+
+# Ignore IDE/editor specific files
+.vscode/
+.idea/
+
+# Ignore custom config files that users might create
+config/*.conf
