@@ -33,6 +33,13 @@ import_github_keys() {
     KEYS=$(curl -s "https://github.com/$GH_USER.keys")
     
     if [[ -n "$KEYS" ]]; then
+        echo -e "\n${BLUE}--- Key Preview ---${NC}"
+        echo "$KEYS"
+        echo -e "${BLUE}-------------------"${NC}"
+        
+        read -rp "Do these keys look correct? Import them? (y/N): " CONFIRM
+        if [[ "${CONFIRM,,}" != "y" ]]; then echo "Import cancelled."; return; fi
+
         USER_HOME=$(eval echo "~$TARGET_USER")
         SSH_DIR="$USER_HOME/.ssh"
         AUTH_KEYS="$SSH_DIR/authorized_keys"
@@ -40,7 +47,7 @@ import_github_keys() {
         sudo mkdir -p "$SSH_DIR"
         sudo chmod 700 "$SSH_DIR"
         
-        # Append keys (avoiding duplicates would be better, but appending is safe)
+        # Append keys
         echo "$KEYS" | sudo tee -a "$AUTH_KEYS" > /dev/null
         
         sudo chmod 600 "$AUTH_KEYS"
@@ -56,10 +63,6 @@ import_usb_keys() {
     echo "Please insert a USB drive containing public key files (*.pub)."
     read -rp "Press Enter when drive is inserted..."
     
-    # Simple mount attempt (assuming USB is typically sda1 or sdb1)
-    # A robust solution requires udisks2 or complex looping. 
-    # We'll try to find partitions that aren't mounted as root/boot.
-    
     USB_DEVS=$(lsblk -o NAME,TRAN,MOUNTPOINT -rn | grep "usb" | awk '{print $1}')
     
     if [[ -z "$USB_DEVS" ]]; then
@@ -71,9 +74,9 @@ import_usb_keys() {
     MOUNT_POINT="/mnt/usb-keys-temp"
     sudo mkdir -p "$MOUNT_POINT"
     
-    for DEV in $USB_DEVS; do
+    for DEV in $USB_DEVS;
+    do
         DEV_PATH="/dev/$DEV"
-        # Only try partitions (e.g., sda1 not sda)
         if [[ "$DEV" == *[0-9] ]]; then
             sudo mount "$DEV_PATH" "$MOUNT_POINT" 2>/dev/null
             if [[ $? -eq 0 ]]; then
@@ -81,21 +84,28 @@ import_usb_keys() {
                 PUB_KEYS=$(find "$MOUNT_POINT" -maxdepth 2 -name "*.pub")
                 
                 if [[ -n "$PUB_KEYS" ]]; then
-                    echo "Found keys:"
+                    echo -e "\n${BLUE}Found Key Files:${NC}"
                     echo "$PUB_KEYS"
-                    USER_HOME=$(eval echo "~$TARGET_USER")
-                    SSH_DIR="$USER_HOME/.ssh"
-                    AUTH_KEYS="$SSH_DIR/authorized_keys"
-                    sudo mkdir -p "$SSH_DIR"
                     
-                    for KEY_FILE in $PUB_KEYS; do
-                        cat "$KEY_FILE" | sudo tee -a "$AUTH_KEYS" > /dev/null
-                        echo "Imported: $(basename "$KEY_FILE")"
-                        FOUND_KEYS=1
-                    done
-                    
-                    sudo chmod 600 "$AUTH_KEYS"
-                    sudo chown -R "$TARGET_USER:$TARGET_USER" "$SSH_DIR"
+                    read -rp "Import ALL these keys? (y/N): " CONFIRM
+                    if [[ "${CONFIRM,,}" == "y" ]]; then
+                        USER_HOME=$(eval echo "~$TARGET_USER")
+                        SSH_DIR="$USER_HOME/.ssh"
+                        AUTH_KEYS="$SSH_DIR/authorized_keys"
+                        sudo mkdir -p "$SSH_DIR"
+                        
+                        for KEY_FILE in $PUB_KEYS;
+                        do
+                            cat "$KEY_FILE" | sudo tee -a "$AUTH_KEYS" > /dev/null
+                            echo "Imported: $(basename "$KEY_FILE")"
+                            FOUND_KEYS=1
+                        done
+                        
+                        sudo chmod 600 "$AUTH_KEYS"
+                        sudo chown -R "$TARGET_USER:$TARGET_USER" "$SSH_DIR"
+                    else
+                        echo "Skipping device."
+                    fi
                 fi
                 sudo umount "$MOUNT_POINT"
             fi
@@ -105,7 +115,7 @@ import_usb_keys() {
     if [[ $FOUND_KEYS -eq 1 ]]; then
         echo -e "${GREEN}USB Import Complete.${NC}"
     else
-        echo -e "${YELLOW}No .pub files found on USB drives.${NC}"
+        echo -e "${YELLOW}No imported keys.${NC}"
     fi
 }
 
@@ -140,6 +150,23 @@ harden_sshd() {
     echo "0) Cancel"
     read -rp "Select option: " CHOICE
     
+    if [[ "$CHOICE" == "0" ]]; then return; fi
+    
+    # SAFETY CHECK
+    if [[ "$CHOICE" == "1" || "$CHOICE" == "3" ]]; then
+        echo -e "\n${RED}${BOLD}CRITICAL WARNING: RISK OF LOCKOUT${NC}"
+        echo "You are about to disable password authentication."
+        echo "If you have not verified that your SSH keys work, you will be locked out."
+        echo "Please open a NEW terminal window and verify login via key now."
+        echo
+        echo "Type 'LOCKED' to confirm you accept this risk:"
+        read -r SAFETY_CHECK
+        if [[ "$SAFETY_CHECK" != "LOCKED" ]]; then
+            echo "Aborted."
+            return
+        fi
+    fi
+
     case "$CHOICE" in
         1|3)
             echo "Disabling PasswordAuthentication..."
@@ -156,12 +183,9 @@ harden_sshd() {
             ;; 
     esac
     
-    if [[ "$CHOICE" != "0" ]]; then
-        echo "Restarting SSH service..."
-        sudo systemctl restart ssh
-        echo -e "${GREEN}SSH Hardening Applied.${NC}"
-        echo -e "${RED}WARNING: Ensure you have tested your SSH Key login before closing your current session!${NC}"
-    fi
+    echo "Restarting SSH service..."
+    sudo systemctl restart ssh
+    echo -e "${GREEN}SSH Hardening Applied.${NC}"
 }
 
 install_firewall() {
@@ -187,20 +211,15 @@ install_firewall() {
 
 install_fail2ban() {
     echo -e "\n${YELLOW}--- Install Fail2Ban ---${NC}"
-    echo "Fail2Ban monitors logs and bans IPs that show malicious signs (e.g. too many password failures)."
+    echo "Fail2Ban monitors logs and bans IPs that show malicious signs."
     
     if ! command -v fail2ban-client &>/dev/null; then
         echo "Installing Fail2Ban..."
         sudo apt-get update && sudo apt-get install -y fail2ban
     fi
     
-    # Create local config to avoid overwriting updates
     echo "Configuring Fail2Ban for SSH..."
     sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-    
-    # Enable sshd jail
-    # Note: Modern Debian/PiOS uses systemd, so backend=systemd is often needed.
-    # We'll rely on default detection but ensure sshd is enabled.
     
     echo -e "${GREEN}Fail2Ban installed and running.${NC}"
     sudo systemctl enable --now fail2ban

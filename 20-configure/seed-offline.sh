@@ -5,6 +5,14 @@ set -euo pipefail
 # "Offline" configuration for the NVMe drive.
 # run this from the Golden SD to prep the NVMe for its first boot.
 
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 CONFIG_FILE="$BASE_DIR/config/settings.conf"
 KEYS_DIR="$BASE_DIR/config/keys"
@@ -17,10 +25,29 @@ PART_ROOT="${NVME_DEV}p2"
 MNT_BOOT="/mnt/nvme-boot-seed"
 MNT_ROOT="/mnt/nvme-root-seed"
 
-echo "=== STAGE 2: SEED NVME (OFFLINE CONFIG) ==="
+echo -e "${BLUE}=== STAGE 2: SEED NVME (OFFLINE CONFIG) ===${NC}"
+
+# --- SAFETY CHECK ---
+if [[ ! -b "$NVME_DEV" ]]; then
+    echo -e "${RED}ERROR: NVMe drive not found at $NVME_DEV.${NC}"
+    exit 1
+fi
+
+MODEL=$(lsblk -no MODEL "$NVME_DEV" | head -n1)
+SIZE_HUMAN=$(lsblk -no SIZE "$NVME_DEV" | head -n1)
+
+echo -e "\n${YELLOW}Target Drive Details:${NC}"
+echo "   Device: $NVME_DEV"
+echo "   Model:  $MODEL"
+echo "   Size:   $SIZE_HUMAN"
+echo
+echo "This tool will configure the User, Network, and SSH on the above drive."
+echo "It modifies files directly on the filesystem."
+read -rp "Proceed with seeding configuration? (y/N): " CONFIRM
+if [[ "${CONFIRM,,}" != "y" ]]; then echo "Aborted."; exit 0; fi
 
 # 1. Mount Partitions
-echo "Mounting NVMe partitions..."
+echo -e "\n${YELLOW}--- Mounting Partitions ---${NC}"
 mkdir -p "$MNT_BOOT" "$MNT_ROOT"
 
 # Unmount if already mounted
@@ -37,63 +64,44 @@ echo "Enabling SSH (creating 'ssh' file in boot)..."
 touch "$MNT_BOOT/ssh"
 
 # 3. User Configuration (userconf.txt)
-# Format: username:encrypted-password
-echo "Configuring User: $TARGET_USER"
-echo "Please enter the password for the new user ($TARGET_USER):"
-read -rsp "Password: " PASSWORD
+echo -e "\n${YELLOW}--- User Configuration ---${NC}"
+echo "Configuring initial user: $TARGET_USER"
+echo "Please set the password for the FIRST BOOT of the NVMe system."
+read -rsp "Enter new password for $TARGET_USER: " PASSWORD
 echo
 PASS_HASH=$(echo "$PASSWORD" | openssl passwd -6 -stdin)
 echo "$TARGET_USER:$PASS_HASH" > "$MNT_BOOT/userconf.txt"
-echo "User configuration written."
+echo "User credentials written to userconf.txt."
 
 # 4. SSH Keys (authorized_keys)
-# We look for *.pub files in config/keys/
+echo -e "\n${YELLOW}--- Seeding SSH Keys ---${NC}"
 KEY_FILE="$MNT_ROOT/home/$TARGET_USER/.ssh/authorized_keys"
-mkdir -p "$MNT_ROOT/home/$TARGET_USER/.ssh"
 
-echo "Checking for SSH keys in $KEYS_DIR..."
 if ls "$KEYS_DIR"/*.pub 1> /dev/null 2>&1; then
-    echo "Adding keys to authorized_keys..."
-    cat "$KEYS_DIR"/*.pub >> "$KEY_FILE"
+    echo "Found keys in $KEYS_DIR."
+    echo "Pre-creating home directory structure..."
     
-    # Set permissions (Critical!)
-    # We need to find the UID of the user. Since it's a new image, user isn't created yet in /etc/passwd?
-    # Actually, userconf.txt creates it on first boot.
-    # So the /home/user dir won't exist yet!
-    # WAIT. userconf.txt logic happens on first boot. The /home/user dir is created THEN.
-    # We cannot write to /home/user/.ssh if /home/user doesn't exist.
+    mkdir -p "$MNT_ROOT/home/$TARGET_USER/.ssh"
+    chmod 700 "$MNT_ROOT/home/$TARGET_USER"
+    chmod 700 "$MNT_ROOT/home/$TARGET_USER/.ssh"
     
-    echo "WARNING: Since this is a fresh image, the user home directory does not exist yet."
-    echo "We will seed keys to /boot/firmware/user-data if using cloud-init, or..."
-    echo "Actually, standard RPi OS doesn't support pre-seeding authorized_keys easily without cloud-init."
+    cat "$KEYS_DIR"/*.pub >> "$MNT_ROOT/home/$TARGET_USER/.ssh/authorized_keys"
+    chmod 600 "$MNT_ROOT/home/$TARGET_USER/.ssh/authorized_keys"
     
-    # Solution: We can create the dir, but we don't know the UID (usually 1000).
-    # Let's try to create it manually.
-    echo "Pre-creating home directory for SSH keys..."
-	mkdir -p "$MNT_ROOT/home/$TARGET_USER/.ssh"
-	chmod 700 "$MNT_ROOT/home/$TARGET_USER"
-	chmod 700 "$MNT_ROOT/home/$TARGET_USER/.ssh"
-	cat "$KEYS_DIR"/*.pub >> "$MNT_ROOT/home/$TARGET_USER/.ssh/authorized_keys"
-	chmod 600 "$MNT_ROOT/home/$TARGET_USER/.ssh/authorized_keys"
-    
-    # Set ownership to 1000:1000 (Default for first user)
+    # Set ownership to 1000:1000 (Default for first Pi user)
     chown -R 1000:1000 "$MNT_ROOT/home/$TARGET_USER"
-    echo "SSH keys seeded."
+    echo -e "${GREEN}SSH keys seeded successfully.${NC}"
 else
     echo "No public keys found in $KEYS_DIR. Skipping."
 fi
 
-# 5. Wi-Fi Configuration (Pre-bookworm style, works on boot)
-# NetworkManager will read this on first boot if we place it right?
-# Actually, Bookworm uses NetworkManager. 'wpa_supplicant.conf' in /boot IS NOT reliably moved anymore.
-# We should use 'nmcli' connection files in /etc/NetworkManager/system-connections/
-
+# 5. Wi-Fi Configuration
 if [[ -n "$WIFI_SSID" ]]; then
-    echo "Seeding Wi-Fi config for NetworkManager..."
+    echo -e "\n${YELLOW}--- Seeding Wi-Fi ---${NC}"
+    echo "SSID: $WIFI_SSID"
     NM_DIR="$MNT_ROOT/etc/NetworkManager/system-connections"
     mkdir -p "$NM_DIR"
     
-    # Create a keyfile for the connection
     cat <<EOF > "$NM_DIR/$WIFI_SSID.nmconnection"
 [connection]
 id=$WIFI_SSID
@@ -115,22 +123,23 @@ method=auto
 method=auto
 EOF
     chmod 600 "$NM_DIR/$WIFI_SSID.nmconnection"
-    # Ownership root:root is fine for NetworkManager config
-    echo "Wi-Fi config written."
+    echo "Wi-Fi config written to NetworkManager."
 fi
 
 # 6. Hostname
 if [[ -n "$TARGET_HOSTNAME" ]]; then
-    echo "Setting Hostname: $TARGET_HOSTNAME"
+    echo -e "\n${YELLOW}--- Setting Hostname ---${NC}"
+    echo "Hostname: $TARGET_HOSTNAME"
     echo "$TARGET_HOSTNAME" > "$MNT_ROOT/etc/hostname"
     sed -i "s/127.0.1.1.*/127.0.1.1\t$TARGET_HOSTNAME/g" "$MNT_ROOT/etc/hosts"
 fi
 
 # Cleanup
-echo "Unmounting..."
+echo -e "\n${YELLOW}--- Finalizing ---${NC}"
 sync
 umount "$MNT_BOOT"
 umount "$MNT_ROOT"
 
-echo "=== SEEDING COMPLETE ==="
+echo -e "${GREEN}=== SEEDING COMPLETE ===${NC}"
+echo "The NVMe drive is configured."
 echo "You can now reboot into the NVMe drive."
