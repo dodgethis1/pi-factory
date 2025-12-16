@@ -65,7 +65,7 @@ import_github_keys() {
 
 import_usb_keys() {
     echo -e "\n${YELLOW}--- Import Keys from USB ---${NC}"
-    echo "Please insert a USB drive containing public key files (*.pub)."
+    echo "Please insert a USB drive containing public key files (ending in .pub, e.g., id_rsa.pub)."
     read -rp "Press Enter when drive is inserted..."
     
     USB_DEVS=$(lsblk -o NAME,TRAN,MOUNTPOINT -rn | grep "usb" | awk '{print $1}')
@@ -141,10 +141,19 @@ generate_ssh_key() {
     sudo -u "$TARGET_USER" ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "$TARGET_USER@$HOSTNAME"
     
     echo -e "${GREEN}Key generated!${NC}"
-    echo "Here is your public key (add this to GitHub/GitLab):"
+    echo "Here is your public key:"
     echo -e "${BLUE}"
     sudo cat "$KEY_PATH.pub"
     echo -e "${NC}"
+    
+    echo -e "${YELLOW}INSTRUCTIONS:${NC}"
+    echo "1. Copy the key block above (starting with 'ssh-ed25519')."
+    echo "2. Go to your Git provider settings:"
+    echo "   - GitHub: Settings -> SSH and GPG Keys -> New SSH Key"
+    echo "   - GitLab: Preferences -> SSH Keys -> Add new key"
+    echo "3. Paste the key and give it a title (e.g., 'Raspberry Pi')."
+    echo
+    read -rp "Press Enter when done..."
 }
 
 harden_sshd() {
