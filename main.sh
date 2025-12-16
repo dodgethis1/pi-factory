@@ -8,9 +8,12 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$BASE_DIR/config/settings.conf"
 
 # ANSI Colors
-GREEN='\033[0;32m'
 RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Helper: Load Config
@@ -24,14 +27,33 @@ load_config() {
     fi
 }
 
+# Helper: Get System Info
+get_sys_info() {
+    # Version
+    GIT_VER=$(git -C "$BASE_DIR" describe --tags --always --dirty 2>/dev/null || echo "Unknown")
+    
+    # IP
+    MY_IP=$(hostname -I | awk '{print $1}')
+    [[ -z "$MY_IP" ]] && MY_IP="No Network"
+
+    # Temp
+    if [[ -f /sys/class/thermal/thermal_zone0/temp ]]; then
+        CPU_TEMP=$(awk '{printf "%.1f°C", $1/1000}' /sys/class/thermal/thermal_zone0/temp)
+    else
+        CPU_TEMP="N/A"
+    fi
+}
+
 # Helper: Banner
 show_header() {
+    get_sys_info
     clear
-    echo -e "${BLUE}============================================================${NC}"
-    echo -e "${BLUE}   PI-FACTORY v2.0   |   Golden Key Provisioning Tool     ${NC}"
-    echo -e "${BLUE}============================================================${NC}"
-    echo "User: $TARGET_USER  |  Host: $TARGET_HOSTNAME  |  Zone: $TARGET_TIMEZONE"
-    echo -e "${BLUE}------------------------------------------------------------${NC}"
+    echo -e "${BLUE}================================================================${NC}"
+    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.1${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
+    echo -e "${BLUE}================================================================${NC}"
+    echo -e " User: ${CYAN}$TARGET_USER${NC}  |  Host: ${CYAN}$TARGET_HOSTNAME${NC}  |  IP: ${CYAN}$MY_IP${NC}"
+    echo -e " Zone: ${CYAN}$TARGET_TIMEZONE${NC}  |  Temp: ${YELLOW}$CPU_TEMP${NC}"
+    echo -e "${BLUE}----------------------------------------------------------------${NC}"
 }
 
 # Main Menu
@@ -39,20 +61,33 @@ main_menu() {
     load_config
     while true; do
         show_header
-        echo "1) [DESTRUCTIVE] Flash NVMe Drive (Wipe & Install OS)"
-        echo "2) Seed NVMe (Create User, Wifi, SSH Keys - FROM SD)"
-        echo "3) Configure Live System (User, Wifi, SSH - ON NVMe)"
-        echo "4) Install Software (Pi-Apps, RPi Connect, Repo)"
-        echo "5) Install Case Software (Pironman, Argon)"
-        echo "6) Install Extras (Docker, Tailscale, Cockpit)"
-        echo "7) System Updates (OS Upgrade & Firmware)"
-        echo "8) Power Options (Reboot, Shutdown)"
-        echo "9) Clone Toolkit (Copy to USB/SD)"
-        echo "10) Apply NVMe Kernel Fixes (Stability)"
-        echo "11) Force PCIe Gen 1 (Max Stability - Slower)"
-        echo "12) Update Toolkit (Pull latest from GitHub)"
-        echo "99) Run NVMe Diagnostics (Speed & Health Check)"
-        echo "0) Exit"
+        
+        echo -e "${RED}${BOLD} [ PROVISIONING ]${NC}"
+        echo -e "  1) ${RED}Flash NVMe Drive${NC}     (Wipe & Install OS)"
+        echo -e "  2) ${YELLOW}Seed NVMe (Offline)${NC}   (Configure from SD card)"
+        echo
+        
+        echo -e "${BLUE}${BOLD} [ CONFIGURATION ]${NC}"
+        echo -e "  3) Configure Live System (User, Wifi, SSH, GitHub Keys)"
+        echo -e "  9) Clone Toolkit         (Backup to USB/SD)"
+        echo
+        
+        echo -e "${GREEN}${BOLD} [ SOFTWARE ]${NC}"
+        echo -e "  4) Install Apps          (Pi-Apps, RPi Connect)"
+        echo -e "  5) Install Cases         (Pironman, Argon)"
+        echo -e "  6) Install Extras        (Docker, Tailscale, Cockpit)"
+        echo
+        
+        echo -e "${CYAN}${BOLD} [ MAINTENANCE ]${NC}"
+        echo -e "  7) System Updates        (OS Upgrade & Firmware)"
+        echo -e "  10) Apply NVMe Fixes     (Kernel Stability)"
+        echo -e "  11) Force PCIe Gen 1     (Hardware Debugging)"
+        echo -e "  12) Update Toolkit       (Pull from GitHub)"
+        echo -e "  99) Run Diagnostics      (Speed & Health Check)"
+        echo
+        
+        echo -e "  8) ${BOLD}Power Options${NC}        (Reboot/Shutdown)"
+        echo -e "  0) Exit"
         echo
         read -rp "Select an option: " choice
 
