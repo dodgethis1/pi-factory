@@ -122,6 +122,34 @@ import_usb_keys() {
     fi
 }
 
+paste_ssh_key() {
+    echo -e "\n${YELLOW}--- Paste Public Key ---${NC}"
+    echo "Paste your public key string (starts with ssh-rsa, ssh-ed25519, etc.) and press Enter:"
+    read -r KEY_STRING
+    
+    if [[ -z "$KEY_STRING" ]]; then echo "Empty input."; return; fi
+    
+    # Basic validation
+    if [[ "$KEY_STRING" != ssh-* ]]; then
+        echo -e "${RED}Invalid format. Should start with 'ssh-...'${NC}"
+        read -rp "Import anyway? (y/N): " FORCE
+        if [[ "${FORCE,,}" != "y" ]]; then return; fi
+    fi
+
+    USER_HOME=$(eval echo "~$TARGET_USER")
+    SSH_DIR="$USER_HOME/.ssh"
+    AUTH_KEYS="$SSH_DIR/authorized_keys"
+    
+    sudo mkdir -p "$SSH_DIR"
+    sudo chmod 700 "$SSH_DIR"
+    
+    echo "$KEY_STRING" | sudo tee -a "$AUTH_KEYS" > /dev/null
+    
+    sudo chmod 600 "$AUTH_KEYS"
+    sudo chown -R "$TARGET_USER:$TARGET_USER" "$SSH_DIR"
+    echo -e "${GREEN}Key imported successfully!${NC}"
+}
+
 generate_ssh_key() {
     echo -e "\n${YELLOW}--- Generate New SSH Key ---${NC}"
     USER_HOME=$(eval echo "~$TARGET_USER")
@@ -259,20 +287,22 @@ while true; do
     echo -e "\n${BLUE}--- SECURITY MENU ---${NC}"
     echo "1) Import SSH Keys from GitHub"
     echo "2) Import SSH Keys from USB"
-    echo "3) Generate New SSH Key Pair"
-    echo "4) Harden SSH (Disable Passwords/Root)"
-    echo "5) Install Firewall (UFW)"
-    echo "6) Install Fail2Ban"
+    echo "3) Paste Public Key (Manual)"
+    echo "4) Generate New SSH Key Pair"
+    echo "5) Harden SSH (Disable Passwords/Root)"
+    echo "6) Install Firewall (UFW)"
+    echo "7) Install Fail2Ban"
     echo "0) Return to Main Menu"
     
     read -rp "Select option: " OPT
     case "$OPT" in
         1) import_github_keys ;;
         2) import_usb_keys ;;
-        3) generate_ssh_key ;;
-        4) harden_sshd ;;
-        5) install_firewall ;;
-        6) install_fail2ban ;;
+        3) paste_ssh_key ;;
+        4) generate_ssh_key ;;
+        5) harden_sshd ;;
+        6) install_firewall ;;
+        7) install_fail2ban ;;
         0) exit 0 ;;
         *) echo "Invalid option." ;;
     esac
