@@ -65,7 +65,7 @@ show_header() {
     get_sys_info
     clear
     echo -e "${BLUE}================================================================${NC}"
-    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.5${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
+    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.6${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
     echo -e "${BLUE}================================================================${NC}"
     echo -e " User: ${CYAN}$TARGET_USER${NC}  |  Host: ${CYAN}$TARGET_HOSTNAME${NC}  |  IP: ${CYAN}$MY_IP${NC}"
     echo -e " Zone: ${CYAN}$TARGET_TIMEZONE${NC}  |  Temp: ${YELLOW}$CPU_TEMP${NC}   |  Boot: ${YELLOW}$BOOT_MEDIA${NC}"
@@ -102,20 +102,22 @@ main_menu() {
         echo -e "${YELLOW}${BOLD} [ HARDWARE TUNING ]${NC}"
         echo -e " 12) Set PCIe Speed       [Pi 5 Only] (Gen 1 / Gen 2 / Gen 3)"
         echo -e " 13) Pi Overclocking      (CPU Frequency & Voltage)"
-        echo -e " 14) Apply NVMe Fixes     (Kernel Stability)"
-        echo -e " 15) Update Bootloader    (EEPROM Firmware)"
+        echo -e " 14) Pi Fan Control       (Active Cooler Profile)"
+        echo -e " 15) Boot Order Config    (Priority: NVMe/SD/USB)"
+        echo -e " 16) Apply NVMe Fixes     (Kernel Stability)"
+        echo -e " 17) Update Bootloader    (EEPROM Firmware)"
         echo
         
         echo -e "${CYAN}${BOLD} [ MAINTENANCE ]${NC}"
-        echo -e " 16) System Updates       (OS Upgrade & Firmware)"
-        echo -e " 17) System Cleanup       (Free up disk space)"
-        echo -e " 18) Backup Drive         [Run from SD/USB] (Create compressed image)"
-        echo -e " 19) Clone Toolkit        (Backup to USB/SD)"
-        echo -e " 20) Update Toolkit       (Pull from GitHub)"
+        echo -e " 18) System Updates       (OS Upgrade & Firmware)"
+        echo -e " 19) System Cleanup       (Free up disk space)"
+        echo -e " 20) Backup Drive         [Run from SD/USB] (Create compressed image)"
+        echo -e " 21) Clone Toolkit        (Backup to USB/SD)"
+        echo -e " 22) Update Toolkit       (Pull from GitHub)"
         echo
         
         echo -e "${BOLD} [ POWER ]${NC}"
-        echo -e " 21) Reboot / Shutdown"
+        echo -e " 23) Reboot / Shutdown"
         echo -e "  0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -169,33 +171,39 @@ main_menu() {
                 bash "$BASE_DIR/40-utils/pi-overclock.sh"
                 ;;
             14)
-                bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
+                bash "$BASE_DIR/40-utils/pi-fan-control.sh"
                 ;;
             15)
-                bash "$BASE_DIR/40-utils/update-bootloader.sh"
+                bash "$BASE_DIR/40-utils/boot-order.sh"
                 ;;
             16)
+                bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
+                ;;
+            17)
+                bash "$BASE_DIR/40-utils/update-bootloader.sh"
+                ;;
+            18)
                 echo "Running System Updates..."
                 sudo apt-get update && sudo apt-get full-upgrade -y
                 echo "Cleaning up..."
                 sudo apt-get autoremove -y
                 echo "Update Complete."
                 ;;
-            17)
+            19)
                 bash "$BASE_DIR/50-maintenance/system-clean.sh"
                 ;;
-            18)
+            20)
                 bash "$BASE_DIR/50-maintenance/backup-drive.sh"
                 ;;
-            19)
+            21)
                 bash "$BASE_DIR/40-utils/clone-toolkit.sh"
                 ;;
-            20)
+            22)
                 echo "Updating Toolkit..."
                 git -C "$BASE_DIR" pull || echo "Update failed."
                 sleep 2
                 ;;
-            21)
+            23)
                 echo "1) Reboot"
                 echo "2) Shutdown (Power Off)"
                 read -rp "Select: " pwr
