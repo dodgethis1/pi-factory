@@ -50,6 +50,7 @@ main_menu() {
         echo "9) Clone Toolkit (Copy to USB/SD)"
         echo "10) Apply NVMe Kernel Fixes (Stability)"
         echo "11) Force PCIe Gen 1 (Max Stability - Slower)"
+        echo "12) Update Toolkit (Pull latest from GitHub)"
         echo "99) Run NVMe Diagnostics (Speed & Health Check)"
         echo "0) Exit"
         echo
@@ -96,6 +97,11 @@ main_menu() {
                 ;;
             11)
                 bash "$BASE_DIR/40-utils/force-pcie-gen1.sh"
+                ;;
+            12)
+                echo "Updating Toolkit..."
+                git -C "$BASE_DIR" pull || echo "Update failed."
+                sleep 2
                 ;;
             99)
                 bash "$BASE_DIR/99-diagnostics/nvme-test.sh"
