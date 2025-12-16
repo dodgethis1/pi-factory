@@ -30,7 +30,12 @@ fi
 if [[ "$ENABLE_RPI_CONNECT" == "true" ]]; then
     echo "Installing Raspberry Pi Connect..."
     apt-get install -y rpi-connect
-    systemctl enable --now rpi-connect
+    
+    # rpi-connect uses a user service or internal logic, not a system service named 'rpi-connect'.
+    # We attempt to turn it on for the user.
+    echo "Enabling rpi-connect..."
+    run_as_user rpi-connect on || echo "WARNING: Could not enable rpi-connect (headless session?). Run 'rpi-connect signin' manually."
+
     echo "NOTE: To link this device to your ID, run 'rpi-connect signin' as $TARGET_USER."
 fi
 
