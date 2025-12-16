@@ -64,11 +64,14 @@ Pi-Factory is context-aware. The main menu header displays your current **Mode**
 *   **3) Configure Live System:**
     *   Sets Hostname, Timezone, and ensures basic connectivity.
 *   **4) Security Wizard:**
-    *   **Interactive Tool:**
-        *   **Import SSH Keys:** Fetches public keys from **GitHub** (by username) or scans a connected **USB drive**.
-        *   **Generate Keys:** Creates a modern Ed25519 key pair for the Pi.
-        *   **Harden System:** Disables Password Authentication and Root Login (requires confirmation code "LOCKED" to prevent lockouts).
-        *   **Firewall:** Installs and configures UFW (Allow SSH, Deny Incoming).
+    *   **Action:** This is an interactive submenu (wizard) for managing SSH keys, hardening SSH settings, and configuring firewall rules.
+    *   **Usage:**
+        *   **1) Import SSH Keys from GitHub:** Enter your GitHub username. The wizard fetches and previews your public keys. Confirm to append them to your `~/.ssh/authorized_keys`.
+        *   **2) Import SSH Keys from USB:** Insert a USB drive. The wizard scans for `.pub` files, lists them, and asks for confirmation to import them to `~/.ssh/authorized_keys`.
+        *   **3) Generate New SSH Key Pair:** Creates an Ed25519 key pair for the current user. This key allows your Pi to authenticate with other services (e.g., GitHub, GitLab). The public key is displayed for easy copying.
+        *   **4) Harden SSH (Disable Passwords/Root):** Provides options to disable password authentication and/or root login via SSH. **CRITICAL WARNING:** Before disabling password authentication, ensure you have successfully logged in via SSH key from a *new* terminal. The wizard requires you to type "LOCKED" to confirm you understand the lockout risk.
+        *   **5) Install Firewall (UFW):** Installs and configures Uncomplicated Firewall (UFW) to deny all incoming connections by default, while allowing SSH on port 22.
+        *   **6) Install Fail2Ban:** Installs and configures Fail2Ban to protect against brute-force attacks on SSH.
 *   **5-7) Install Software:**
     *   **Apps:** Pi-Apps, RPi Connect.
     *   **Cases:** Drivers for Pironman 5, Argon One V3.
