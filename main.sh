@@ -61,7 +61,7 @@ show_header() {
     get_sys_info
     clear
     echo -e "${BLUE}================================================================${NC}"
-    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.3${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
+    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.4${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
     echo -e "${BLUE}================================================================${NC}"
     echo -e " User: ${CYAN}$TARGET_USER${NC}  |  Host: ${CYAN}$TARGET_HOSTNAME${NC}  |  IP: ${CYAN}$MY_IP${NC}"
     echo -e " Zone: ${CYAN}$TARGET_TIMEZONE${NC}  |  Temp: ${YELLOW}$CPU_TEMP${NC}   |  Boot: ${YELLOW}$BOOT_MEDIA${NC}"
@@ -81,35 +81,36 @@ main_menu() {
         
         echo -e "${BLUE}${BOLD} [ CONFIGURATION ]${NC}"
         echo -e "  3) Configure Live System [Run from NVMe]   (User, Wifi, SSH, GitHub Keys)"
-        echo -e "  4) Install Apps          (Pi-Apps, RPi Connect)"
-        echo -e "  5) Install Cases         (Pironman, Argon)"
-        echo -e "  6) Install Extras        (Docker, Tailscale, Cockpit)"
+        echo -e "  4) Security Wizard       (SSH Keys, Firewall, Hardening)"
+        echo -e "  5) Install Apps          (Pi-Apps, RPi Connect)"
+        echo -e "  6) Install Cases         (Pironman, Argon)"
+        echo -e "  7) Install Extras        (Docker, Tailscale, Cockpit)"
         echo
         
         echo -e "${GREEN}${BOLD} [ DIAGNOSTICS ]${NC}"
-        echo -e "  7) System Dashboard      (Health, Power, Storage, Net)"
-        echo -e "  8) Disk Benchmark        (FIO - 4K Random R/W)"
-        echo -e "  9) Network Benchmark     (Internet & Local Speed)"
-        echo -e " 10) NVMe Speed Test       (Sequential Read - Raw)"
+        echo -e "  8) System Dashboard      (Health, Power, Storage, Net)"
+        echo -e "  9) Disk Benchmark        (FIO - 4K Random R/W)"
+        echo -e " 10) Network Benchmark     (Internet & Local Speed)"
+        echo -e " 11) NVMe Speed Test       (Sequential Read - Raw)"
         echo
         
         echo -e "${YELLOW}${BOLD} [ HARDWARE TUNING ]${NC}"
-        echo -e " 11) Set PCIe Speed       [Pi 5 Only] (Gen 1 / Gen 2 / Gen 3)"
-        echo -e " 12) Pi Overclocking      (CPU Frequency & Voltage)"
-        echo -e " 13) Apply NVMe Fixes     (Kernel Stability)"
-        echo -e " 14) Update Bootloader    (EEPROM Firmware)"
+        echo -e " 12) Set PCIe Speed       [Pi 5 Only] (Gen 1 / Gen 2 / Gen 3)"
+        echo -e " 13) Pi Overclocking      (CPU Frequency & Voltage)"
+        echo -e " 14) Apply NVMe Fixes     (Kernel Stability)"
+        echo -e " 15) Update Bootloader    (EEPROM Firmware)"
         echo
         
         echo -e "${CYAN}${BOLD} [ MAINTENANCE ]${NC}"
-        echo -e " 15) System Updates       (OS Upgrade & Firmware)"
-        echo -e " 16) System Cleanup       (Free up disk space)"
-        echo -e " 17) Backup Drive         [Run from SD/USB] (Create compressed image)"
-        echo -e " 18) Clone Toolkit        (Backup to USB/SD)"
-        echo -e " 19) Update Toolkit       (Pull from GitHub)"
+        echo -e " 16) System Updates       (OS Upgrade & Firmware)"
+        echo -e " 17) System Cleanup       (Free up disk space)"
+        echo -e " 18) Backup Drive         [Run from SD/USB] (Create compressed image)"
+        echo -e " 19) Clone Toolkit        (Backup to USB/SD)"
+        echo -e " 20) Update Toolkit       (Pull from GitHub)"
         echo
         
         echo -e "${BOLD} [ POWER ]${NC}"
-        echo -e " 20) Reboot / Shutdown"
+        echo -e " 21) Reboot / Shutdown"
         echo -e "  0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -133,60 +134,63 @@ main_menu() {
                 bash "$BASE_DIR/20-configure/configure-live.sh"
                 ;;
             4)
-                bash "$BASE_DIR/30-software/install-apps.sh"
+                bash "$BASE_DIR/20-configure/security-wizard.sh"
                 ;;
             5)
-                bash "$BASE_DIR/30-software/install-cases.sh"
+                bash "$BASE_DIR/30-software/install-apps.sh"
                 ;;
             6)
-                bash "$BASE_DIR/30-software/install-extras.sh"
+                bash "$BASE_DIR/30-software/install-cases.sh"
                 ;;
             7)
-                bash "$BASE_DIR/99-diagnostics/dashboard.sh"
+                bash "$BASE_DIR/30-software/install-extras.sh"
                 ;;
             8)
-                bash "$BASE_DIR/99-diagnostics/bench-disk.sh"
+                bash "$BASE_DIR/99-diagnostics/dashboard.sh"
                 ;;
             9)
-                bash "$BASE_DIR/99-diagnostics/bench-net.sh"
+                bash "$BASE_DIR/99-diagnostics/bench-disk.sh"
                 ;;
             10)
-                bash "$BASE_DIR/99-diagnostics/nvme-test.sh"
+                bash "$BASE_DIR/99-diagnostics/bench-net.sh"
                 ;;
             11)
-                bash "$BASE_DIR/40-utils/set-pcie-speed.sh"
+                bash "$BASE_DIR/99-diagnostics/nvme-test.sh"
                 ;;
             12)
-                bash "$BASE_DIR/40-utils/pi-overclock.sh"
+                bash "$BASE_DIR/40-utils/set-pcie-speed.sh"
                 ;;
             13)
-                bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
+                bash "$BASE_DIR/40-utils/pi-overclock.sh"
                 ;;
             14)
-                bash "$BASE_DIR/40-utils/update-bootloader.sh"
+                bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
                 ;;
             15)
+                bash "$BASE_DIR/40-utils/update-bootloader.sh"
+                ;;
+            16)
                 echo "Running System Updates..."
                 sudo apt-get update && sudo apt-get full-upgrade -y
                 echo "Cleaning up..."
                 sudo apt-get autoremove -y
                 echo "Update Complete."
                 ;;
-            16)
+            17)
                 bash "$BASE_DIR/50-maintenance/system-clean.sh"
                 ;;
-            17)
+            18)
                 bash "$BASE_DIR/50-maintenance/backup-drive.sh"
                 ;;
-            18)
+            19)
                 bash "$BASE_DIR/40-utils/clone-toolkit.sh"
                 ;;
-            19)
+            20)
                 echo "Updating Toolkit..."
                 git -C "$BASE_DIR" pull || echo "Update failed."
                 sleep 2
                 ;;
-            20)
+            21)
                 echo "1) Reboot"
                 echo "2) Shutdown (Power Off)"
                 read -rp "Select: " pwr
