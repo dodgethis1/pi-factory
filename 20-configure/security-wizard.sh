@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 
 # 20-configure/security-wizard.sh
 # Interactive wizard for hardening system security and managing SSH keys.
@@ -9,6 +9,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
@@ -30,7 +31,11 @@ import_github_keys() {
     if [[ -z "$GH_USER" ]]; then echo "Cancelled."; return; fi
 
     echo "Fetching keys for $GH_USER..."
-    KEYS=$(curl -s "https://github.com/$GH_USER.keys")
+    # capture output, allow curl to fail without exiting script immediately
+    if ! KEYS=$(curl -s -f "https://github.com/$GH_USER.keys"); then
+        echo -e "${RED}Failed to fetch keys (User not found or network error).${NC}"
+        return
+    fi
     
     if [[ -n "$KEYS" ]]; then
         echo -e "\n${BLUE}--- Key Preview ---${NC}"
@@ -54,7 +59,7 @@ import_github_keys() {
         sudo chown -R "$TARGET_USER:$TARGET_USER" "$SSH_DIR"
         echo -e "${GREEN}Keys imported successfully!${NC}"
     else
-        echo -e "${RED}No keys found or user does not exist.${NC}"
+        echo -e "${RED}No keys found.${NC}"
     fi
 }
 
@@ -74,39 +79,37 @@ import_usb_keys() {
     MOUNT_POINT="/mnt/usb-keys-temp"
     sudo mkdir -p "$MOUNT_POINT"
     
-    for DEV in $USB_DEVS;
-    do
+    for DEV in $USB_DEVS; do
         DEV_PATH="/dev/$DEV"
+        # Only try partitions (e.g., sda1 not sda)
         if [[ "$DEV" == *[0-9] ]]; then
-            sudo mount "$DEV_PATH" "$MOUNT_POINT" 2>/dev/null
-            if [[ $? -eq 0 ]]; then
+            # Try to mount, continue loop if fails
+            if sudo mount "$DEV_PATH" "$MOUNT_POINT" 2>/dev/null; then
                 echo "Scanning $DEV_PATH..."
-                PUB_KEYS=$(find "$MOUNT_POINT" -maxdepth 2 -name "*.pub")
                 
-                if [[ -n "$PUB_KEYS" ]]; then
-                    echo -e "\n${BLUE}Found Key Files:${NC}"
-                    echo "$PUB_KEYS"
+                # Use find with process substitution to handle spaces safely
+                while IFS= read -r -d '' KEY_FILE; do
+                    FILENAME=$(basename "$KEY_FILE")
+                    echo -e "\n${BLUE}Found Key File: $FILENAME${NC}"
                     
-                    read -rp "Import ALL these keys? (y/N): " CONFIRM
+                    read -rp "Import this key? (y/N): " CONFIRM
                     if [[ "${CONFIRM,,}" == "y" ]]; then
                         USER_HOME=$(eval echo "~$TARGET_USER")
                         SSH_DIR="$USER_HOME/.ssh"
                         AUTH_KEYS="$SSH_DIR/authorized_keys"
+                        
                         sudo mkdir -p "$SSH_DIR"
+                        sudo chmod 700 "$SSH_DIR"
                         
-                        for KEY_FILE in $PUB_KEYS;
-                        do
-                            cat "$KEY_FILE" | sudo tee -a "$AUTH_KEYS" > /dev/null
-                            echo "Imported: $(basename "$KEY_FILE")"
-                            FOUND_KEYS=1
-                        done
-                        
+                        cat "$KEY_FILE" | sudo tee -a "$AUTH_KEYS" > /dev/null
                         sudo chmod 600 "$AUTH_KEYS"
                         sudo chown -R "$TARGET_USER:$TARGET_USER" "$SSH_DIR"
-                    else
-                        echo "Skipping device."
+                        
+                        echo -e "${GREEN}Imported $FILENAME${NC}"
+                        FOUND_KEYS=1
                     fi
-                fi
+                done < <(find "$MOUNT_POINT" -maxdepth 2 -name "*.pub" -print0)
+                
                 sudo umount "$MOUNT_POINT"
             fi
         fi
@@ -115,7 +118,7 @@ import_usb_keys() {
     if [[ $FOUND_KEYS -eq 1 ]]; then
         echo -e "${GREEN}USB Import Complete.${NC}"
     else
-        echo -e "${YELLOW}No imported keys.${NC}"
+        echo -e "${YELLOW}No keys imported.${NC}"
     fi
 }
 
@@ -131,6 +134,10 @@ generate_ssh_key() {
     fi
     
     echo "Generating Ed25519 key pair..."
+    # Ensure .ssh dir exists
+    sudo mkdir -p "$(dirname "$KEY_PATH")"
+    sudo chown "$TARGET_USER:$TARGET_USER" "$(dirname "$KEY_PATH")"
+    
     sudo -u "$TARGET_USER" ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "$TARGET_USER@$HOSTNAME"
     
     echo -e "${GREEN}Key generated!${NC}"
@@ -170,16 +177,26 @@ harden_sshd() {
     case "$CHOICE" in
         1|3)
             echo "Disabling PasswordAuthentication..."
-            sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' "$SSHD_CONFIG"
-            sudo sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' "$SSHD_CONFIG"
+            # Ensure setting exists or is uncommented
+            if grep -q "^PasswordAuthentication" "$SSHD_CONFIG"; then
+                sudo sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' "$SSHD_CONFIG"
+            else
+                echo "PasswordAuthentication no" | sudo tee -a "$SSHD_CONFIG" > /dev/null
+            fi
+            # Also handle commented out default
+            sudo sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' "$SSHD_CONFIG"
             ;; 
     esac
     
     case "$CHOICE" in
         2|3)
             echo "Disabling PermitRootLogin..."
+            if grep -q "^PermitRootLogin" "$SSHD_CONFIG"; then
+                sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' "$SSHD_CONFIG"
+            else
+                echo "PermitRootLogin no" | sudo tee -a "$SSHD_CONFIG" > /dev/null
+            fi
             sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' "$SSHD_CONFIG"
-            sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' "$SSHD_CONFIG"
             ;; 
     esac
     
@@ -203,6 +220,7 @@ install_firewall() {
     sudo ufw allow 22/tcp
     
     echo "Enabling UFW..."
+    # 'yes' to confirm disruption warning
     echo "y" | sudo ufw enable
     
     sudo ufw status verbose
