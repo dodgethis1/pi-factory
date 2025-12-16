@@ -105,10 +105,11 @@ main_menu() {
         echo -e " 16) System Cleanup       (Free up disk space)"
         echo -e " 17) Backup Drive         [Run from SD/USB] (Create compressed image)"
         echo -e " 18) Clone Toolkit        (Backup to USB/SD)"
+        echo -e " 19) Update Toolkit       (Pull from GitHub)"
         echo
         
         echo -e "${BOLD} [ POWER ]${NC}"
-        echo -e " 19) Reboot / Shutdown"
+        echo -e " 20) Reboot / Shutdown"
         echo -e "  0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -181,6 +182,11 @@ main_menu() {
                 bash "$BASE_DIR/40-utils/clone-toolkit.sh"
                 ;;
             19)
+                echo "Updating Toolkit..."
+                git -C "$BASE_DIR" pull || echo "Update failed."
+                sleep 2
+                ;;
+            20)
                 echo "1) Reboot"
                 echo "2) Shutdown (Power Off)"
                 read -rp "Select: " pwr
