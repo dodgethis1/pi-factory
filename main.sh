@@ -49,7 +49,7 @@ show_header() {
     get_sys_info
     clear
     echo -e "${BLUE}================================================================${NC}"
-    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.1${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
+    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.2${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
     echo -e "${BLUE}================================================================${NC}"
     echo -e " User: ${CYAN}$TARGET_USER${NC}  |  Host: ${CYAN}$TARGET_HOSTNAME${NC}  |  IP: ${CYAN}$MY_IP${NC}"
     echo -e " Zone: ${CYAN}$TARGET_TIMEZONE${NC}  |  Temp: ${YELLOW}$CPU_TEMP${NC}"
@@ -69,24 +69,34 @@ main_menu() {
         
         echo -e "${BLUE}${BOLD} [ CONFIGURATION ]${NC}"
         echo -e "  3) Configure Live System (User, Wifi, SSH, GitHub Keys)"
-        echo -e "  9) Clone Toolkit         (Backup to USB/SD)"
-        echo
-        
-        echo -e "${GREEN}${BOLD} [ SOFTWARE ]${NC}"
         echo -e "  4) Install Apps          (Pi-Apps, RPi Connect)"
         echo -e "  5) Install Cases         (Pironman, Argon)"
         echo -e "  6) Install Extras        (Docker, Tailscale, Cockpit)"
         echo
         
-        echo -e "${CYAN}${BOLD} [ MAINTENANCE ]${NC}"
-        echo -e "  7) System Updates        (OS Upgrade & Firmware)"
-        echo -e "  10) Apply NVMe Fixes     (Kernel Stability)"
-        echo -e "  11) Force PCIe Gen 1     (Hardware Debugging)"
-        echo -e "  12) Update Toolkit       (Pull from GitHub)"
-        echo -e "  99) Run Diagnostics      (Speed & Health Check)"
+        echo -e "${GREEN}${BOLD} [ DIAGNOSTICS ]${NC}"
+        echo -e "  7) System Dashboard      (Health, Power, Storage, Net)"
+        echo -e "  8) Disk Benchmark        (FIO - 4K Random R/W)"
+        echo -e "  9) Network Benchmark     (Internet & Local Speed)"
+        echo -e " 10) NVMe Speed Test       (Sequential Read - Raw)"
         echo
         
-        echo -e "  8) ${BOLD}Power Options${NC}        (Reboot/Shutdown)"
+        echo -e "${YELLOW}${BOLD} [ HARDWARE TUNING ]${NC}"
+        echo -e " 11) Set PCIe Speed       (Gen 1 / Gen 2 / Gen 3)"
+        echo -e " 12) Pi Overclocking      (CPU Frequency & Voltage)"
+        echo -e " 13) Apply NVMe Fixes     (Kernel Stability)"
+        echo -e " 14) Update Bootloader    (EEPROM Firmware)"
+        echo
+        
+        echo -e "${CYAN}${BOLD} [ MAINTENANCE ]${NC}"
+        echo -e " 15) System Updates       (OS Upgrade & Firmware)"
+        echo -e " 16) System Cleanup       (Free up disk space)"
+        echo -e " 17) Backup Drive         (Create compressed image)"
+        echo -e " 18) Clone Toolkit        (Backup to USB/SD)"
+        echo
+        
+        echo -e "${BOLD} [ POWER ]${NC}"
+        echo -e " 19) Reboot / Shutdown"
         echo -e "  0) Exit"
         echo
         read -rp "Select an option: " choice
@@ -111,35 +121,51 @@ main_menu() {
                 bash "$BASE_DIR/30-software/install-extras.sh"
                 ;;
             7)
-                echo "Running System Updates..."
-                apt-get update && apt-get full-upgrade -y
-                echo "Cleaning up..."
-                apt-get autoremove -y
-                echo "Update Complete."
+                bash "$BASE_DIR/99-diagnostics/dashboard.sh"
                 ;;
             8)
+                bash "$BASE_DIR/99-diagnostics/bench-disk.sh"
+                ;;
+            9)
+                bash "$BASE_DIR/99-diagnostics/bench-net.sh"
+                ;;
+            10)
+                bash "$BASE_DIR/99-diagnostics/nvme-test.sh"
+                ;;
+            11)
+                bash "$BASE_DIR/40-utils/set-pcie-speed.sh"
+                ;;
+            12)
+                bash "$BASE_DIR/40-utils/pi-overclock.sh"
+                ;;
+            13)
+                bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
+                ;;
+            14)
+                bash "$BASE_DIR/40-utils/update-bootloader.sh"
+                ;;
+            15)
+                echo "Running System Updates..."
+                sudo apt-get update && sudo apt-get full-upgrade -y
+                echo "Cleaning up..."
+                sudo apt-get autoremove -y
+                echo "Update Complete."
+                ;;
+            16)
+                bash "$BASE_DIR/50-maintenance/system-clean.sh"
+                ;;
+            17)
+                bash "$BASE_DIR/50-maintenance/backup-drive.sh"
+                ;;
+            18)
+                bash "$BASE_DIR/40-utils/clone-toolkit.sh"
+                ;;
+            19)
                 echo "1) Reboot"
                 echo "2) Shutdown (Power Off)"
                 read -rp "Select: " pwr
-                if [[ "$pwr" == "1" ]]; then reboot; fi
-                if [[ "$pwr" == "2" ]]; then poweroff; fi
-                ;;
-            9)
-                bash "$BASE_DIR/40-utils/clone-toolkit.sh"
-                ;;
-            10)
-                bash "$BASE_DIR/40-utils/apply-kernel-fixes.sh"
-                ;;
-            11)
-                bash "$BASE_DIR/40-utils/force-pcie-gen1.sh"
-                ;;
-            12)
-                echo "Updating Toolkit..."
-                git -C "$BASE_DIR" pull || echo "Update failed."
-                sleep 2
-                ;;
-            99)
-                bash "$BASE_DIR/99-diagnostics/nvme-test.sh"
+                if [[ "$pwr" == "1" ]]; then sudo reboot; fi
+                if [[ "$pwr" == "2" ]]; then sudo poweroff; fi
                 ;;
             0)
                 echo "Exiting."
