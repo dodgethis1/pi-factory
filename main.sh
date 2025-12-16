@@ -47,12 +47,16 @@ get_sys_info() {
     ROOT_DEV=$(findmnt / -o SOURCE -n)
     if [[ "$ROOT_DEV" == *mmcblk* ]]; then
         BOOT_MEDIA="SD Card"
+        MODE_STATUS="${GREEN}PROVISIONING MODE (Safe to Flash)${NC}"
     elif [[ "$ROOT_DEV" == *nvme* ]]; then
         BOOT_MEDIA="NVMe SSD"
+        MODE_STATUS="${RED}LIVE SYSTEM MODE (Do Not Flash)${NC}"
     elif [[ "$ROOT_DEV" == *sd* ]]; then
         BOOT_MEDIA="USB/SATA"
+        MODE_STATUS="${GREEN}PROVISIONING MODE (Safe to Flash)${NC}"
     else
         BOOT_MEDIA="Unknown ($ROOT_DEV)"
+        MODE_STATUS="${YELLOW}UNKNOWN MODE${NC}"
     fi
 }
 
@@ -61,10 +65,11 @@ show_header() {
     get_sys_info
     clear
     echo -e "${BLUE}================================================================${NC}"
-    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.4${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
+    echo -e "${BOLD}   PI-FACTORY ${GREEN}v2.5${NC} (${YELLOW}${GIT_VER}${NC})   |   Golden Key Provisioning   ${NC}"
     echo -e "${BLUE}================================================================${NC}"
     echo -e " User: ${CYAN}$TARGET_USER${NC}  |  Host: ${CYAN}$TARGET_HOSTNAME${NC}  |  IP: ${CYAN}$MY_IP${NC}"
     echo -e " Zone: ${CYAN}$TARGET_TIMEZONE${NC}  |  Temp: ${YELLOW}$CPU_TEMP${NC}   |  Boot: ${YELLOW}$BOOT_MEDIA${NC}"
+    echo -e " Mode: ${BOLD}$MODE_STATUS${NC}"
     echo -e "${BLUE}----------------------------------------------------------------${NC}"
 }
 
