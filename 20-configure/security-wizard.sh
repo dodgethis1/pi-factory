@@ -35,7 +35,7 @@ import_github_keys() {
     if [[ -n "$KEYS" ]]; then
         echo -e "\n${BLUE}--- Key Preview ---${NC}"
         echo "$KEYS"
-        echo -e "${BLUE}-------------------"${NC}"
+        echo -e "${BLUE}-------------------${NC}"
         
         read -rp "Do these keys look correct? Import them? (y/N): " CONFIRM
         if [[ "${CONFIRM,,}" != "y" ]]; then echo "Import cancelled."; return; fi
