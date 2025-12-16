@@ -50,7 +50,34 @@ if [[ "$ENABLE_SSH" == "true" ]]; then
     systemctl enable --now ssh
 fi
 
-# 6. Updates (Basic update to fetch latest config packages)
+# 6. Import SSH Keys from GitHub (Optional)
+read -rp "Do you want to import SSH public keys from GitHub? (y/N): " IMPORT_GH_KEYS
+if [[ "${IMPORT_GH_KEYS,,}" == "y" ]]; then
+    read -rp "Enter GitHub Username: " GH_USERNAME
+    if [[ -n "$GH_USERNAME" ]]; then
+        echo "Fetching keys for $GH_USERNAME..."
+        GH_KEYS=$(curl -s "https://github.com/$GH_USERNAME.keys")
+        if [[ -n "$GH_KEYS" ]]; then
+            # Ensure ~/.ssh exists and has correct permissions
+            USER_SSH_DIR="/home/$TARGET_USER/.ssh"
+            mkdir -p "$USER_SSH_DIR"
+            chmod 700 "$USER_SSH_DIR"
+            
+            # Append keys and set permissions
+            echo "$GH_KEYS" >> "$USER_SSH_DIR/authorized_keys"
+            chmod 600 "$USER_SSH_DIR/authorized_keys"
+            chown -R "$TARGET_USER:$TARGET_USER" "$USER_SSH_DIR"
+            
+            echo "SSH keys for $GH_USERNAME imported successfully."
+        else
+            echo "WARNING: No SSH keys found for $GH_USERNAME on GitHub or failed to fetch."
+        fi
+    else
+        echo "Skipping GitHub SSH key import (no username provided)."
+    fi
+fi
+
+# 7. Basic Updates
 echo "Running basic system update..."
 apt-get update
 
